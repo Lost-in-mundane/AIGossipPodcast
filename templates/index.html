@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文本转语音工具</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 10px;
+            padding: 10px;
+            display: none;
+        }
+        .loading {
+            display: inline-block;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>文本转语音工具</h1>
+    <textarea id="inputText" placeholder="请输入要转换的文本，每行将被单独转换..."></textarea>
+    <div>
+        <button onclick="convertToSpeech()">转换为语音</button>
+        <span id="status"></span>
+    </div>
+    <audio id="audioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+
+    <script>
+        async function convertToSpeech() {
+            const text = document.getElementById('inputText').value;
+            const status = document.getElementById('status');
+            const audioPlayer = document.getElementById('audioPlayer');
+            const button = document.querySelector('button');
+            
+            if (!text.trim()) {
+                alert('请输入文本');
+                return;
+            }
+
+            // 禁用按钮和输入框
+            button.disabled = true;
+            status.style.display = 'inline';
+            status.textContent = '正在转换中...';
+            audioPlayer.style.display = 'none';
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error('转换失败');
+                }
+
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                status.textContent = '转换成功！';
+            } catch (error) {
+                status.textContent = '转换失败：' + error.message;
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html> 
