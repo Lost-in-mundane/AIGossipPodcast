@@ -29,7 +29,7 @@
         button:hover {
             background-color: #45a049;
         }
-        #status {
+        #status, #dialogueStatus {
             margin-top: 10px;
             padding: 10px;
             display: none;
@@ -38,23 +38,153 @@
             display: inline-block;
             margin-left: 10px;
         }
+        .tab {
+            overflow: hidden;
+            border: 1px solid #ccc;
+            background-color: #f1f1f1;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 14px 16px;
+            transition: 0.3s;
+            color: black;
+        }
+        .tab button:hover {
+            background-color: #ddd;
+        }
+        .tab button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-top: none;
+            animation: fadeEffect 1s;
+            border-radius: 0 0 4px 4px;
+        }
+        @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+        .voice-settings {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+        }
+        .voice-settings select {
+            padding: 5px;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        .voice-settings label {
+            margin-right: 5px;
+        }
+        .example {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <h1>文本转语音工具</h1>
-    <textarea id="inputText" placeholder="请输入要转换的文本，每行将被单独转换..."></textarea>
-    <div>
-        <button onclick="convertToSpeech()">转换为语音</button>
-        <span id="status"></span>
+    
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'basicMode')">基础模式</button>
+        <button class="tablinks" onclick="openTab(event, 'dialogueMode')">对谈模式</button>
     </div>
-    <audio id="audioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+    
+    <!-- 基础模式 -->
+    <div id="basicMode" class="tabcontent active">
+        <h2>基础模式</h2>
+        <textarea id="inputText" placeholder="请输入要转换的文本，每行将被单独转换..."></textarea>
+        <div>
+            <button onclick="convertToSpeech()">转换为语音</button>
+            <span id="status"></span>
+        </div>
+        <audio id="audioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+    </div>
+    
+    <!-- 对谈模式 -->
+    <div id="dialogueMode" class="tabcontent">
+        <h2>对谈模式</h2>
+        <div class="example">
+            示例格式：<br>
+            [主持人]欢迎来到今天的节目。<br>
+            [嘉宾]谢谢邀请，很高兴来到这里。<br>
+            [主持人]今天我们想请您谈谈...<br>
+        </div>
+        
+        <textarea id="dialogueText" placeholder="请输入带有[主持人]和[嘉宾]标记的对谈文本..."></textarea>
+        
+        <div class="voice-settings">
+            <h3>音色设置</h3>
+            <div>
+                <label for="hostVoice">主持人音色：</label>
+                <select id="hostVoice">
+                    <option value="anna">沉稳女声 (Anna)</option>
+                    <option value="bella">激情女声 (Bella)</option>
+                    <option value="claire">温柔女声 (Claire)</option>
+                    <option value="diana">欢快女声 (Diana)</option>
+                </select>
+            </div>
+            <div>
+                <label for="guestVoice">嘉宾音色：</label>
+                <select id="guestVoice">
+                    <option value="alex">沉稳男声 (Alex)</option>
+                    <option value="benjamin">低沉男声 (Benjamin)</option>
+                    <option value="charles">磁性男声 (Charles)</option>
+                    <option value="david">欢快男声 (David)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div>
+            <button onclick="convertDialogue()">生成对谈</button>
+            <span id="dialogueStatus"></span>
+        </div>
+        <audio id="dialogueAudioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+    </div>
 
     <script>
+        // 标签切换功能
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        
+        // 基础模式转换功能
         async function convertToSpeech() {
             const text = document.getElementById('inputText').value;
             const status = document.getElementById('status');
             const audioPlayer = document.getElementById('audioPlayer');
-            const button = document.querySelector('button');
+            const button = document.querySelector('#basicMode button');
             
             if (!text.trim()) {
                 alert('请输入文本');
@@ -91,6 +221,66 @@
                 button.disabled = false;
             }
         }
+        
+        // 对谈模式转换功能
+        async function convertDialogue() {
+            const dialogueText = document.getElementById('dialogueText').value;
+            const hostVoice = document.getElementById('hostVoice').value;
+            const guestVoice = document.getElementById('guestVoice').value;
+            const status = document.getElementById('dialogueStatus');
+            const audioPlayer = document.getElementById('dialogueAudioPlayer');
+            const button = document.querySelector('#dialogueMode button');
+            
+            if (!dialogueText.trim()) {
+                alert('请输入对谈文本');
+                return;
+            }
+            
+            // 检查文本格式是否包含标记
+            if (!dialogueText.includes('[主持人]') && !dialogueText.includes('[嘉宾]')) {
+                alert('请使用[主持人]和[嘉宾]标记标注不同角色的对话');
+                return;
+            }
+
+            // 禁用按钮和输入框
+            button.disabled = true;
+            status.style.display = 'inline';
+            status.textContent = '正在生成对谈音频...';
+            audioPlayer.style.display = 'none';
+
+            try {
+                const response = await fetch('/convert_dialogue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        dialogue_text: dialogueText,
+                        host_voice: hostVoice,
+                        guest_voice: guestVoice
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('生成对谈失败');
+                }
+
+                const blob = await response.blob();
+                const audioUrl = URL.createObjectURL(blob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                status.textContent = '生成成功！';
+            } catch (error) {
+                status.textContent = '生成失败：' + error.message;
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        // 页面加载时设置基础模式为默认显示
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('basicMode').style.display = 'block';
+        });
     </script>
 </body>
 </html> 

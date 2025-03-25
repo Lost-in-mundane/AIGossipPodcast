@@ -3,11 +3,13 @@ from pydub import AudioSegment
 import tempfile
 import os
 from tts_api import SiliconFlowTTS
+from multiTTS import DialogueTTS  # 导入对谈模式处理类
 
 app = Flask(__name__)
 
 # 初始化 TTS 实例
 tts = SiliconFlowTTS(api_key="sk-wfmtuoioaovnoiyvegmvxqacjfxtrbdhnxdejkxoiipfhvef")  # 替换成您的 API key
+dialogue_tts = DialogueTTS(tts)  # 初始化对谈模式处理器
 
 @app.route('/')
 def index():
@@ -68,6 +70,55 @@ def convert():
                 mimetype="audio/wav",
                 as_attachment=True,
                 download_name="combined_audio.wav"
+            )
+            
+    except Exception as e:
+        return str(e), 500
+
+@app.route('/convert_dialogue', methods=['POST'])
+def convert_dialogue():
+    """对谈模式音频生成接口"""
+    try:
+        # 获取请求数据
+        if not request.is_json:
+            return "请求必须是 JSON 格式", 400
+            
+        data = request.get_json()
+        if not data or 'dialogue_text' not in data:
+            return "请求必须包含 'dialogue_text' 字段", 400
+            
+        # 获取参数
+        dialogue_text = data['dialogue_text']
+        host_voice = data.get('host_voice', 'anna')
+        guest_voice = data.get('guest_voice', 'alex')
+        speed = float(data.get('speed', 1.0))
+        gain = float(data.get('gain', 0.0))
+        silence_duration = int(data.get('silence_duration', 500))
+        
+        # 创建临时目录和文件
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = os.path.join(temp_dir, 'dialogue_audio.wav')
+            
+            # 生成对谈音频
+            success = dialogue_tts.generate_dialogue_audio(
+                dialogue_text=dialogue_text,
+                output_path=output_path,
+                host_voice=host_voice,
+                guest_voice=guest_voice,
+                speed=speed,
+                gain=gain,
+                silence_duration=silence_duration
+            )
+            
+            if not success:
+                raise Exception("生成对谈音频失败")
+                
+            # 返回音频文件
+            return send_file(
+                output_path,
+                mimetype="audio/wav",
+                as_attachment=True,
+                download_name="dialogue_audio.wav"
             )
             
     except Exception as e:
