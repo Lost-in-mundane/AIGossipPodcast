@@ -26,12 +26,12 @@ class DialogueTTS:
         guest_voice: str = "alex",
         model: str = "FunAudioLLM/CosyVoice2-0.5B",
         response_format: str = "wav",
-        speed: float = 1.0,
-        gain: float = 0.0,
+        host_speed: float = 1.0,
+        guest_speed: float = 1.0,
         silence_duration: int = 500  # 静音时长(毫秒)
     ) -> bool:
         """
-        生成对谈音频
+        生成对谈音频（逐行生成方式）
         
         Args:
             dialogue_text: 带有角色标记的对谈文本
@@ -40,8 +40,8 @@ class DialogueTTS:
             guest_voice: 嘉宾音色
             model: 使用的TTS模型
             response_format: 输出音频格式
-            speed: 语速
-            gain: 音量增益
+            host_speed: 主持人语速
+            guest_speed: 嘉宾语速
             silence_duration: 对话之间的静音时长(毫秒)
             
         Returns:
@@ -53,60 +53,61 @@ class DialogueTTS:
             if not parsed_dialogue:
                 raise ValueError("无法解析对话文本，请检查格式是否正确")
                 
-            # 按角色分组文本
-            host_lines, guest_lines, dialogue_order = self._group_by_speaker(parsed_dialogue)
-            
             # 创建临时目录
             with tempfile.TemporaryDirectory() as temp_dir:
-                # 生成主持人音频
-                host_audio_path = os.path.join(temp_dir, "host.wav")
-                host_text = "。".join(host_lines)
-                if host_text:
-                    success = self.tts.text_to_speech(
-                        text=host_text,
-                        output_path=host_audio_path,
-                        voice_name=host_voice,
-                        model=model,
-                        response_format=response_format,
-                        speed=speed,
-                        gain=gain
-                    )
-                    if not success:
-                        raise Exception("生成主持人音频失败")
+                audio_segments = []
+                prev_role = None
                 
-                # 生成嘉宾音频
-                guest_audio_path = os.path.join(temp_dir, "guest.wav")
-                guest_text = "。".join(guest_lines)
-                if guest_text:
-                    success = self.tts.text_to_speech(
-                        text=guest_text,
-                        output_path=guest_audio_path,
-                        voice_name=guest_voice,
-                        model=model,
-                        response_format=response_format,
-                        speed=speed,
-                        gain=gain
-                    )
-                    if not success:
-                        raise Exception("生成嘉宾音频失败")
+                # 为每句对话单独生成音频
+                for i, (role, content) in enumerate(parsed_dialogue):
+                    temp_file = os.path.join(temp_dir, f'segment_{i}.wav')
+                    voice = host_voice if role == "主持人" else guest_voice
+                    speed = host_speed if role == "主持人" else guest_speed
+                    
+                    try:
+                        success = self.tts.text_to_speech(
+                            text=content,
+                            output_path=temp_file,
+                            voice_name=voice,
+                            model=model,
+                            response_format=response_format,
+                            speed=speed
+                        )
+                        
+                        if success:
+                            # 读取生成的音频并添加到列表
+                            segment = AudioSegment.from_wav(temp_file)
+                            
+                            # 可选：音量平衡
+                            segment = segment.normalize()
+                            
+                            audio_segments.append((role, segment))
+                        else:
+                            print(f"生成音频失败: {role}, {content}")
+                            # 使用空音频替代失败片段
+                            audio_segments.append((role, AudioSegment.silent(duration=500)))
+                            
+                    except Exception as e:
+                        print(f"处理片段错误: {e}")
+                        audio_segments.append((role, AudioSegment.silent(duration=500)))
                 
-                # 根据音频长度估算每句话的时长
-                host_audio = AudioSegment.from_wav(host_audio_path) if host_lines else None
-                guest_audio = AudioSegment.from_wav(guest_audio_path) if guest_lines else None
+                # 拼接所有音频片段
+                if not audio_segments:
+                    raise ValueError("没有成功生成任何音频片段")
+                    
+                final_audio = audio_segments[0][1]
+                prev_role = audio_segments[0][0]
                 
-                # 创建静音片段
-                silence = AudioSegment.silent(duration=silence_duration)
-                
-                # 切分并拼接音频
-                final_audio = self._assemble_dialogue_audio(
-                    host_audio=host_audio,
-                    guest_audio=guest_audio,
-                    host_lines=host_lines,
-                    guest_lines=guest_lines,
-                    dialogue_order=dialogue_order,
-                    silence=silence
-                )
-                
+                for role, segment in audio_segments[1:]:
+                    # 根据角色转换动态调整静音时长
+                    pause_duration = silence_duration
+                    if role != prev_role:  # 角色切换时可以稍长一些
+                        pause_duration += 100
+                    
+                    silence = AudioSegment.silent(duration=pause_duration)
+                    final_audio += silence + segment
+                    prev_role = role
+                    
                 # 导出最终音频
                 output_path = Path(output_path)
                 output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -118,22 +119,22 @@ class DialogueTTS:
             print(f"生成对谈音频失败: {e}")
             return False
     
-def _parse_dialogue(self, text: str) -> List[Tuple[str, str]]:
-    """
-    解析对话文本，保留所有特殊标记
-    """
-    # 使用更精确的正则表达式，只匹配角色标记
-    pattern = r'\[(主持人|嘉宾)\]([\s\S]*?)(?=\[主持人\]|\[嘉宾\]|$)'
-    matches = re.findall(pattern, text)
-    
-    dialogue = []
-    for role, content in matches:
-        # 保留所有特殊标记，只清理首尾空白
-        cleaned_content = content.strip()
-        if cleaned_content:
-            dialogue.append((role, cleaned_content))
-    
-    return dialogue
+    def _parse_dialogue(self, text: str) -> List[Tuple[str, str]]:
+        """
+        解析对话文本，保留所有特殊标记
+        """
+        # 使用更精确的正则表达式，只匹配角色标记
+        pattern = r'\[(主持人|嘉宾)\]([\s\S]*?)(?=\[主持人\]|\[嘉宾\]|$)'
+        matches = re.findall(pattern, text)
+        
+        dialogue = []
+        for role, content in matches:
+            # 保留所有特殊标记，只清理首尾空白
+            cleaned_content = content.strip()
+            if cleaned_content:
+                dialogue.append((role, cleaned_content))
+        
+        return dialogue
     
     def _group_by_speaker(self, dialogue: List[Tuple[str, str]]) -> Tuple[List[str], List[str], List[Tuple[str, int]]]:
         """

@@ -3,127 +3,402 @@
 <head>
     <title>文本转语音工具</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
+        :root {
+            --primary-color: #6C5CE7;
+            --secondary-color: #00D2D3;
+            --accent-color: #FD79A8;
+            --light-bg: #F8FAFC;
+            --dark-bg: #1E293B;
+            --card-bg: #FFFFFF;
+            --text-primary: #2D3748;
+            --text-secondary: #718096;
+            --success: #00B894;
+            --border-radius: 16px;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
         }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px 80px;
+            line-height: 1.5;
+            color: var(--text-primary);
+            background-color: var(--light-bg);
+            background-image: linear-gradient(to bottom right, rgba(108, 92, 231, 0.05), rgba(0, 210, 211, 0.05));
+        }
+        
+        h1 {
+            font-size: 52px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            line-height: 1.2;
+        }
+        
+        .subtitle {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-bottom: 50px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+        }
+        
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+        
         textarea {
             width: 100%;
             height: 300px;
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            margin: 15px 0;
+            padding: 20px;
+            border: 1px solid #E2E8F0;
+            border-radius: var(--border-radius);
+            font-family: inherit;
+            font-size: 16px;
+            transition: all 0.3s;
+            resize: vertical;
+            background-color: var(--card-bg);
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #status, #dialogueStatus {
-            margin-top: 10px;
-            padding: 10px;
-            display: none;
-        }
-        .loading {
-            display: inline-block;
-            margin-left: 10px;
-        }
-        .tab {
-            overflow: hidden;
-            border: 1px solid #ccc;
-            background-color: #f1f1f1;
-            border-radius: 4px 4px 0 0;
-        }
-        .tab button {
-            background-color: inherit;
-            float: left;
-            border: none;
+        
+        textarea:focus {
             outline: none;
-            cursor: pointer;
-            padding: 14px 16px;
-            transition: 0.3s;
-            color: black;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
         }
-        .tab button:hover {
-            background-color: #ddd;
-        }
-        .tab button.active {
-            background-color: #4CAF50;
+        
+        button {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
         }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        #status, #dialogueStatus, #storyStatus {
+            margin-top: 15px;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: var(--border-radius);
+            background-color: rgba(0, 210, 211, 0.1);
+            color: var(--text-primary);
+        }
+        
+        .tab {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: var(--shadow);
+            padding: 6px;
+        }
+        
+        .tab button {
+            flex: 1;
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: none;
+            margin: 0 5px;
+        }
+        
+        .tab button:hover {
+            background-color: rgba(108, 92, 231, 0.05);
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .tab button.active {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.2);
+        }
+        
         .tabcontent {
             display: none;
-            padding: 6px 12px;
-            border: 1px solid #ccc;
-            border-top: none;
-            animation: fadeEffect 1s;
-            border-radius: 0 0 4px 4px;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 40px;
+            background-color: var(--card-bg);
+            animation: fadeEffect 0.5s;
         }
+        
         @keyframes fadeEffect {
-            from {opacity: 0;}
-            to {opacity: 1;}
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
         }
+        
         .voice-settings {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #f8f8f8;
-            border-radius: 4px;
+            margin: 25px 0;
+            padding: 25px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border: 1px solid #E2E8F0;
         }
+        
         .voice-settings select {
-            padding: 5px;
-            margin: 5px;
-            border-radius: 4px;
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            font-size: 16px;
+            background-color: white;
+            transition: all 0.3s;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236C5CE7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
         }
+        
+        .voice-settings select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+        
         .voice-settings label {
-            margin-right: 5px;
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary-color);
         }
+        
+        input[type="number"] {
+            padding: 14px;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            width: 100px;
+        }
+        
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
+        }
+        
         .example {
-            background-color: #f5f5f5;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            font-size: 0.9em;
-            color: #666;
+            background-color: rgba(253, 121, 168, 0.1);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            font-size: 15px;
+            color: var(--text-primary);
+            border-left: 4px solid var(--accent-color);
         }
+        
         .active {
             display: block;
+        }
+        
+        audio {
+            width: 100%;
+            margin-top: 25px;
+            border-radius: var(--border-radius);
+            height: 40px;
+        }
+        
+        .control-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .voice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        /* 故事转换模式样式 */
+        #storyMode textarea {
+            width: 100%;
+            height: 250px;
+            margin: 15px 0;
+            background-color: var(--card-bg);
+        }
+        
+        #customPrompt {
+            height: 120px;
+            background-color: rgba(108, 92, 231, 0.03);
+        }
+        
+        .prompt-section {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: rgba(108, 92, 231, 0.05);
+            border-radius: var(--border-radius);
+            border: 1px dashed rgba(108, 92, 231, 0.3);
+        }
+        
+        .header-container {
+            position: relative;
+            text-align: center;
+            padding-bottom: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .header-container::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            border-radius: 2px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .speed-control span {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        #copyBtn {
+            background: linear-gradient(45deg, var(--secondary-color), #38B2AC);
+            margin-top: 20px;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 60px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .voice-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            h1 {
+                font-size: 40px;
+            }
+            
+            .tabcontent {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>文本转语音工具</h1>
+    <div class="header-container">
+        <h1>智能文本转语音工具</h1>
+        <p class="subtitle">简单高效地将文字转换为自然流畅的语音，支持基础文本转换、多人对谈场景和故事内容转换</p>
+    </div>
     
     <div class="tab">
         <button class="tablinks active" onclick="openTab(event, 'basicMode')">基础模式</button>
         <button class="tablinks" onclick="openTab(event, 'dialogueMode')">对谈模式</button>
+        <button class="tablinks" onclick="openTab(event, 'storyMode')">故事转换</button>
     </div>
     
     <!-- 基础模式 -->
     <div id="basicMode" class="tabcontent active">
         <h2>基础模式</h2>
         <textarea id="inputText" placeholder="请输入要转换的文本，每行将被单独转换..."></textarea>
-        <div>
-            <button onclick="convertToSpeech()">转换为语音</button>
-            <span id="status"></span>
+        
+        <div class="voice-settings">
+            <h3>语音设置</h3>
+            <div class="voice-grid">
+                <div class="input-group">
+                    <label for="basicVoice">音色选择：</label>
+                    <select id="basicVoice">
+                        <option value="anna">沉稳女声 (Anna)</option>
+                        <option value="bella">激情女声 (Bella)</option>
+                        <option value="claire">温柔女声 (Claire)</option>
+                        <option value="diana">欢快女声 (Diana)</option>
+                        <option value="alex">沉稳男声 (Alex)</option>
+                        <option value="benjamin">低沉男声 (Benjamin)</option>
+                        <option value="charles">磁性男声 (Charles)</option>
+                        <option value="david">欢快男声 (David)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="basicSpeed">语速调节：</label>
+                    <div class="speed-control">
+                        <input type="number" id="basicSpeed" min="0.25" max="4.0" step="0.01" value="1.0">
+                        <span>（范围：0.25-4.0）</span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <audio id="audioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+        
+        <div class="control-container">
+            <button onclick="convertToSpeech()">转换为语音</button>
+            <div id="status" style="display: none;"></div>
+        </div>
+        <audio id="audioPlayer" controls style="display: none;"></audio>
     </div>
     
     <!-- 对谈模式 -->
     <div id="dialogueMode" class="tabcontent">
         <h2>对谈模式</h2>
         <div class="example">
-            示例格式：<br>
+            <strong>示例格式：</strong><br>
             [主持人]欢迎来到今天的节目。<br>
             [嘉宾]谢谢邀请，很高兴来到这里。<br>
             [主持人]今天我们想请您谈谈...<br>
@@ -133,31 +408,80 @@
         
         <div class="voice-settings">
             <h3>音色设置</h3>
-            <div>
-                <label for="hostVoice">主持人音色：</label>
-                <select id="hostVoice">
-                    <option value="anna">沉稳女声 (Anna)</option>
-                    <option value="bella">激情女声 (Bella)</option>
-                    <option value="claire">温柔女声 (Claire)</option>
-                    <option value="diana">欢快女声 (Diana)</option>
-                </select>
-            </div>
-            <div>
-                <label for="guestVoice">嘉宾音色：</label>
-                <select id="guestVoice">
-                    <option value="alex">沉稳男声 (Alex)</option>
-                    <option value="benjamin">低沉男声 (Benjamin)</option>
-                    <option value="charles">磁性男声 (Charles)</option>
-                    <option value="david">欢快男声 (David)</option>
-                </select>
+            <div class="voice-grid">
+                <div>
+                    <label for="hostVoice">主持人音色：</label>
+                    <select id="hostVoice">
+                        <option value="anna">沉稳女声 (Anna)</option>
+                        <option value="bella">激情女声 (Bella)</option>
+                        <option value="claire">温柔女声 (Claire)</option>
+                        <option value="diana">欢快女声 (Diana)</option>
+                        <option value="alex">沉稳男声 (Alex)</option>
+                        <option value="benjamin">低沉男声 (Benjamin)</option>
+                        <option value="charles">磁性男声 (Charles)</option>
+                        <option value="david">欢快男声 (David)</option>
+                    </select>
+                    <div class="input-group">
+                        <label for="hostSpeed">主持人语速：</label>
+                        <div class="speed-control">
+                            <input type="number" id="hostSpeed" min="0.25" max="4.0" step="0.01" value="1.0">
+                            <span>（范围：0.25-4.0）</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label for="guestVoice">嘉宾音色：</label>
+                    <select id="guestVoice">
+                        <option value="alex">沉稳男声 (Alex)</option>
+                        <option value="benjamin">低沉男声 (Benjamin)</option>
+                        <option value="charles">磁性男声 (Charles)</option>
+                        <option value="david">欢快男声 (David)</option>
+                        <option value="anna">沉稳女声 (Anna)</option>
+                        <option value="bella">激情女声 (Bella)</option>
+                        <option value="claire">温柔女声 (Claire)</option>
+                        <option value="diana">欢快女声 (Diana)</option>
+                    </select>
+                    <div class="input-group">
+                        <label for="guestSpeed">嘉宾语速：</label>
+                        <div class="speed-control">
+                            <input type="number" id="guestSpeed" min="0.25" max="4.0" step="0.01" value="1.0">
+                            <span>（范围：0.25-4.0）</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
-        <div>
+        <div class="control-container">
             <button onclick="convertDialogue()">生成对谈</button>
-            <span id="dialogueStatus"></span>
+            <div id="dialogueStatus" style="display: none;"></div>
         </div>
-        <audio id="dialogueAudioPlayer" controls style="margin-top: 20px; display: none;"></audio>
+        <audio id="dialogueAudioPlayer" controls style="display: none;"></audio>
+    </div>
+    
+    <!-- 故事转换模式 -->
+    <div id="storyMode" class="tabcontent">
+        <h2>故事转对谈脚本</h2>
+        
+        <textarea id="storyText" placeholder="请输入故事文本..."></textarea>
+        
+        <div class="prompt-section">
+            <label for="customPrompt">自定义提示词(可选):</label>
+            <textarea id="customPrompt" placeholder="留空则使用默认提示词..."></textarea>
+        </div>
+        
+        <div class="control-container">
+            <button onclick="convertStory()">转换为对谈脚本</button>
+            <span id="storyStatus"></span>
+        </div>
+        
+        <textarea id="convertedDialogue" placeholder="转换结果..." style="display: none;"></textarea>
+        
+        <button onclick="copyToDialogueMode()" style="display: none;" id="copyBtn">复制到对谈模式</button>
+    </div>
+    
+    <div class="footer">
+        <p>© 2024 智能文本转语音工具 • 让您的文字拥有声音</p>
     </div>
 
     <script>
@@ -182,6 +506,8 @@
         // 基础模式转换功能
         async function convertToSpeech() {
             const text = document.getElementById('inputText').value;
+            const voice = document.getElementById('basicVoice').value;
+            const speed = parseFloat(document.getElementById('basicSpeed').value);
             const status = document.getElementById('status');
             const audioPlayer = document.getElementById('audioPlayer');
             const button = document.querySelector('#basicMode button');
@@ -193,7 +519,7 @@
 
             // 禁用按钮和输入框
             button.disabled = true;
-            status.style.display = 'inline';
+            status.style.display = 'block';
             status.textContent = '正在转换中...';
             audioPlayer.style.display = 'none';
 
@@ -203,7 +529,11 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify({ 
+                        text: text,
+                        voice: voice,
+                        speed: speed
+                    })
                 });
 
                 if (!response.ok) {
@@ -227,6 +557,8 @@
             const dialogueText = document.getElementById('dialogueText').value;
             const hostVoice = document.getElementById('hostVoice').value;
             const guestVoice = document.getElementById('guestVoice').value;
+            const hostSpeed = parseFloat(document.getElementById('hostSpeed').value);
+            const guestSpeed = parseFloat(document.getElementById('guestSpeed').value);
             const status = document.getElementById('dialogueStatus');
             const audioPlayer = document.getElementById('dialogueAudioPlayer');
             const button = document.querySelector('#dialogueMode button');
@@ -244,7 +576,7 @@
 
             // 禁用按钮和输入框
             button.disabled = true;
-            status.style.display = 'inline';
+            status.style.display = 'block';
             status.textContent = '正在生成对谈音频...';
             audioPlayer.style.display = 'none';
 
@@ -257,7 +589,9 @@
                     body: JSON.stringify({ 
                         dialogue_text: dialogueText,
                         host_voice: hostVoice,
-                        guest_voice: guestVoice
+                        guest_voice: guestVoice,
+                        host_speed: hostSpeed,
+                        guest_speed: guestSpeed
                     })
                 });
 
@@ -277,9 +611,191 @@
             }
         }
         
+        // 故事转换功能
+        async function convertStory() {
+            const storyText = document.getElementById('storyText').value;
+            const customPrompt = document.getElementById('customPrompt').value;
+            const status = document.getElementById('storyStatus');
+            const result = document.getElementById('convertedDialogue');
+            const copyBtn = document.getElementById('copyBtn');
+            
+            if (!storyText.trim()) {
+                alert('请输入故事文本');
+                return;
+            }
+
+            status.textContent = '正在准备转换...';
+            // 显示结果区域，但内容清空
+            result.value = '';
+            result.style.display = 'block';
+            copyBtn.style.display = 'none';
+
+            // 检查浏览器是否支持 EventSource
+            if (typeof EventSource !== 'undefined') {
+                // 关闭任何可能存在的连接
+                if (window.storyEventSource) {
+                    window.storyEventSource.close();
+                }
+                
+                // 创建新的 EventSource 连接
+                let eventUrl = `/convert_story?stream=true&t=${Date.now()}`;
+                window.storyEventSource = new EventSource(eventUrl);
+                let fullText = '';
+                let isConnected = false;
+
+                // 处理连接事件
+                window.storyEventSource.onopen = function() {
+                    isConnected = true;
+                    status.textContent = '连接已建立，发送转换请求...';
+                    
+                    // 连接建立后发送转换请求
+                    fetch('/convert_story', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            story_text: storyText,
+                            custom_prompt: customPrompt || null,
+                            use_stream: true
+                        })
+                    });
+                };
+                
+                // 处理消息
+                window.storyEventSource.onmessage = function(e) {
+                    try {
+                        const data = JSON.parse(e.data);
+                        
+                        if (data.status === 'connected') {
+                            // 连接确认
+                            status.textContent = '连接成功，等待处理...';
+                        } else if (data.status === 'start') {
+                            // 开始接收数据
+                            status.textContent = '正在生成回答...';
+                        } else if (data.content) {
+                            // 接收内容
+                            fullText += data.content;
+                            result.value = fullText;
+                            // 自动滚动到底部
+                            result.scrollTop = result.scrollHeight;
+                        } else if (data.status === 'done') {
+                            // 完成接收
+                            status.textContent = '转换成功';
+                            copyBtn.style.display = 'inline-block';
+                            // 关闭连接
+                            window.storyEventSource.close();
+                            window.storyEventSource = null;
+                        } else if (data.error) {
+                            // 错误处理
+                            status.textContent = '转换失败: ' + data.error;
+                            window.storyEventSource.close();
+                            window.storyEventSource = null;
+                        }
+                    } catch (err) {
+                        console.error('解析SSE数据失败:', err, e.data);
+                        status.textContent = '处理数据时出错';
+                    }
+                };
+                
+                // 错误处理
+                window.storyEventSource.onerror = function(e) {
+                    console.error('SSE连接错误:', e);
+                    status.textContent = '连接错误，尝试使用标准模式...';
+                    
+                    if (window.storyEventSource) {
+                        window.storyEventSource.close();
+                        window.storyEventSource = null;
+                    }
+                    
+                    // 判断是否曾经连接成功过
+                    if (!isConnected) {
+                        // 如果从未连接成功，切换到标准模式
+                        fallbackToNonStream();
+                    }
+                };
+                
+                // 设置超时，避免长时间没有响应
+                setTimeout(function() {
+                    if (fullText === '' && window.storyEventSource) {
+                        status.textContent = '响应超时，切换到标准模式...';
+                        window.storyEventSource.close();
+                        window.storyEventSource = null;
+                        fallbackToNonStream();
+                    }
+                }, 10000); // 10秒超时
+            } else {
+                // 浏览器不支持 EventSource
+                status.textContent = '您的浏览器不支持流式输出，使用标准模式...';
+                fallbackToNonStream();
+            }
+            
+            // 回退函数 - 使用标准非流式请求
+            async function fallbackToNonStream() {
+                try {
+                    status.textContent = '使用标准模式转换中...';
+                    
+                    const response = await fetch('/convert_story', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ 
+                            story_text: storyText,
+                            custom_prompt: customPrompt || null,
+                            use_stream: false
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        result.value = data.dialogue_text;
+                        copyBtn.style.display = 'inline-block';
+                        status.textContent = '转换成功';
+                    } else {
+                        result.value = '';
+                        status.textContent = '转换失败: ' + data.error;
+                    }
+                } catch (err) {
+                    console.error('标准模式错误:', err);
+                    status.textContent = '错误: ' + err.message;
+                }
+            }
+        }
+
+        function copyToDialogueMode() {
+            const text = document.getElementById('convertedDialogue').value;
+            document.getElementById('dialogueText').value = text;
+            document.querySelector('.tablinks[onclick*="dialogueMode"]').click();
+        }
+        
         // 页面加载时设置基础模式为默认显示
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('basicMode').style.display = 'block';
+        });
+
+        // 语速输入验证
+        function validateSpeed(input) {
+            let value = parseFloat(input.value);
+            if (isNaN(value)) {
+                value = 1.0;
+            } else if (value < 0.25) {
+                value = 0.25;
+            } else if (value > 4.0) {
+                value = 4.0;
+            }
+            input.value = value.toFixed(2);
+            return value;
+        }
+
+        // 为所有语速输入框添加验证
+        document.getElementById('basicSpeed').addEventListener('change', function() {
+            validateSpeed(this);
+        });
+        
+        document.getElementById('hostSpeed').addEventListener('change', function() {
+            validateSpeed(this);
+        });
+        
+        document.getElementById('guestSpeed').addEventListener('change', function() {
+            validateSpeed(this);
         });
     </script>
 </body>
