@@ -365,8 +365,16 @@
             <h3>语音设置</h3>
             <div class="voice-grid">
                 <div class="input-group">
+                    <label for="ttsEngine">TTS引擎选择：</label>
+                    <select id="ttsEngine">
+                        <option value="siliconflow">硅基流动TTS</option>
+                        <option value="aliyun">阿里云CosyVoice</option>
+                    </select>
+                </div>
+                <div class="input-group">
                     <label for="basicVoice">音色选择：</label>
                     <select id="basicVoice">
+                        <!-- 硅基流动TTS音色 -->
                         <option value="anna">沉稳女声 (Anna)</option>
                         <option value="bella">激情女声 (Bella)</option>
                         <option value="claire">温柔女声 (Claire)</option>
@@ -409,9 +417,17 @@
         <div class="voice-settings">
             <h3>音色设置</h3>
             <div class="voice-grid">
+                <div class="input-group">
+                    <label for="dialogueTtsEngine">TTS引擎选择：</label>
+                    <select id="dialogueTtsEngine">
+                        <option value="siliconflow">硅基流动TTS</option>
+                        <option value="aliyun">阿里云CosyVoice</option>
+                    </select>
+                </div>
                 <div>
                     <label for="hostVoice">主持人音色：</label>
                     <select id="hostVoice">
+                        <!-- 硅基流动TTS音色 -->
                         <option value="anna">沉稳女声 (Anna)</option>
                         <option value="bella">激情女声 (Bella)</option>
                         <option value="claire">温柔女声 (Claire)</option>
@@ -432,6 +448,7 @@
                 <div>
                     <label for="guestVoice">嘉宾音色：</label>
                     <select id="guestVoice">
+                        <!-- 硅基流动TTS音色 -->
                         <option value="alex">沉稳男声 (Alex)</option>
                         <option value="benjamin">低沉男声 (Benjamin)</option>
                         <option value="charles">磁性男声 (Charles)</option>
@@ -503,11 +520,84 @@
             evt.currentTarget.className += " active";
         }
         
+        // 根据TTS引擎加载对应的音色
+        async function loadVoices(engine, selectElementId) {
+            const selectElement = document.getElementById(selectElementId);
+            
+            // 清空现有选项
+            selectElement.innerHTML = '';
+            
+            if (engine === 'siliconflow') {
+                // 硅基流动TTS音色
+                const siliconflowVoices = [
+                    {id: 'anna', name: '沉稳女声 (Anna)'},
+                    {id: 'bella', name: '激情女声 (Bella)'},
+                    {id: 'claire', name: '温柔女声 (Claire)'},
+                    {id: 'diana', name: '欢快女声 (Diana)'},
+                    {id: 'alex', name: '沉稳男声 (Alex)'},
+                    {id: 'benjamin', name: '低沉男声 (Benjamin)'},
+                    {id: 'charles', name: '磁性男声 (Charles)'},
+                    {id: 'david', name: '欢快男声 (David)'}
+                ];
+                
+                siliconflowVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.id;
+                    option.textContent = voice.name;
+                    selectElement.appendChild(option);
+                });
+            } else if (engine === 'aliyun') {
+                // 阿里云音色
+                const aliyunVoices = [
+                    {id: 'longcheng_v2', name: '阳光男声（龙橙）'},
+                    {id: 'longwan_v2', name: '温柔甜美女（龙婉）'},
+                    {id: 'longshu_v2', name: '书籍朗读男声（龙书）'},
+                    {id: 'longhua_v2', name: '清新女童声（龙华）'},
+                    {id: 'loongbella_v2', name: '欢快女声（龙贝拉）'},
+                    {id: 'longxiaochun_v2', name: '中英文女声（龙小淳）'},
+                    {id: 'longxiaoxia_v2', name: '温柔女声（龙小夏）'}
+                ];
+                
+                aliyunVoices.forEach(voice => {
+                    const option = document.createElement('option');
+                    option.value = voice.id;
+                    option.textContent = voice.name;
+                    selectElement.appendChild(option);
+                });
+            }
+        }
+        
+        // 设置TTS引擎切换事件监听
+        document.getElementById('ttsEngine').addEventListener('change', function() {
+            loadVoices(this.value, 'basicVoice');
+        });
+        
+        document.getElementById('dialogueTtsEngine').addEventListener('change', function() {
+            loadVoices(this.value, 'hostVoice');
+            loadVoices(this.value, 'guestVoice');
+        });
+        
+        // 页面加载时初始化音色列表
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置基础模式为默认显示
+            document.getElementById('basicMode').style.display = 'block';
+            
+            // 加载默认引擎的音色
+            const defaultEngine = document.getElementById('ttsEngine').value;
+            loadVoices(defaultEngine, 'basicVoice');
+            
+            // 加载对谈模式的音色
+            const dialogueEngine = document.getElementById('dialogueTtsEngine').value;
+            loadVoices(dialogueEngine, 'hostVoice');
+            loadVoices(dialogueEngine, 'guestVoice');
+        });
+        
         // 基础模式转换功能
         async function convertToSpeech() {
             const text = document.getElementById('inputText').value;
             const voice = document.getElementById('basicVoice').value;
             const speed = parseFloat(document.getElementById('basicSpeed').value);
+            const ttsEngine = document.getElementById('ttsEngine').value;
             const status = document.getElementById('status');
             const audioPlayer = document.getElementById('audioPlayer');
             const button = document.querySelector('#basicMode button');
@@ -532,7 +622,8 @@
                     body: JSON.stringify({ 
                         text: text,
                         voice: voice,
-                        speed: speed
+                        speed: speed,
+                        tts_engine: ttsEngine
                     })
                 });
 
@@ -559,6 +650,7 @@
             const guestVoice = document.getElementById('guestVoice').value;
             const hostSpeed = parseFloat(document.getElementById('hostSpeed').value);
             const guestSpeed = parseFloat(document.getElementById('guestSpeed').value);
+            const ttsEngine = document.getElementById('dialogueTtsEngine').value;
             const status = document.getElementById('dialogueStatus');
             const audioPlayer = document.getElementById('dialogueAudioPlayer');
             const button = document.querySelector('#dialogueMode button');
@@ -591,7 +683,8 @@
                         host_voice: hostVoice,
                         guest_voice: guestVoice,
                         host_speed: hostSpeed,
-                        guest_speed: guestSpeed
+                        guest_speed: guestSpeed,
+                        tts_engine: ttsEngine
                     })
                 });
 
@@ -766,11 +859,6 @@
             document.querySelector('.tablinks[onclick*="dialogueMode"]').click();
         }
         
-        // 页面加载时设置基础模式为默认显示
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('basicMode').style.display = 'block';
-        });
-
         // 语速输入验证
         function validateSpeed(input) {
             let value = parseFloat(input.value);

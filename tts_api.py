@@ -1,8 +1,9 @@
 import requests
 from pathlib import Path
 import base64
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, Dict, List
 import os
+import re
 
 class SiliconFlowTTS:
     """硅基流动 TTS API 封装类"""
@@ -37,6 +38,29 @@ class SiliconFlowTTS:
             }
         }
     
+    def _preprocess_text(self, text: str) -> str:
+        """
+        对文本进行预处理，解决硅基流动TTS的特定问题
+        
+        Args:
+            text: 原始文本
+            
+        Returns:
+            str: 处理后的文本
+        """
+        # 0. 最高优先级：将所有感叹号替换为空格
+        text = text.replace('！', ' ')
+        
+        # 1. 替换所有"啊"为"呀"
+        text = text.replace('啊', '呀')
+        
+        # 2. 确保文本末尾有标点符号
+        # 判断最后一个字符是否为标点符号
+        if text and not re.search(r'[，。！？、：；""''（）【】《》…,.!?:;\'\"\[\]\(\)<>]$', text):
+            text = text + '。。'  # 如果没有标点符号，添加句号
+            
+        return text
+    
     def text_to_speech(
         self,
         text: str,
@@ -69,6 +93,9 @@ class SiliconFlowTTS:
             raise ValueError("speed must be between 0.25 and 4.0")
         if not (-10 <= gain <= 10):
             raise ValueError("gain must be between -10 and 10")
+        
+        # 预处理文本
+        processed_text = self._preprocess_text(text)
             
         # 构建完整的语音名称
         full_voice_name = f"{model}:{voice_name}"
@@ -77,7 +104,7 @@ class SiliconFlowTTS:
         payload = {
             "model": model,
             "voice": full_voice_name,
-            "input": text,
+            "input": processed_text,
             "response_format": response_format,
             "stream": stream,
             "speed": speed,
@@ -117,7 +144,21 @@ class SiliconFlowTTS:
                 print(f"API response: {e.response.text}")
             return False
             
-    def list_preset_voices(self):
+    def list_preset_voices(self) -> Dict:
         """列出所有系统预置音色"""
         return self.preset_voices
+        
+    def get_voices_for_ui(self) -> List[Dict]:
+        """获取用于UI展示的音色列表"""
+        voices = []
+        
+        # 合并男声和女声列表
+        for gender, voice_dict in self.preset_voices.items():
+            for voice_id, description in voice_dict.items():
+                voices.append({
+                    "id": voice_id, 
+                    "name": f"{voice_id} ({description})"
+                })
+        
+        return voices
 

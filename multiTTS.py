@@ -5,16 +5,17 @@ from pathlib import Path
 from typing import List, Tuple, Dict, Optional
 from pydub import AudioSegment
 from tts_api import SiliconFlowTTS
+from aliyun_tts import AliyunCosyVoiceTTS
 
 class DialogueTTS:
     """对谈模式TTS处理类"""
     
-    def __init__(self, tts_client: SiliconFlowTTS):
+    def __init__(self, tts_client):
         """
         初始化对谈模式TTS处理器
         
         Args:
-            tts_client: SiliconFlowTTS客户端实例
+            tts_client: TTS客户端实例（SiliconFlowTTS或AliyunCosyVoiceTTS）
         """
         self.tts = tts_client
         
@@ -28,6 +29,7 @@ class DialogueTTS:
         response_format: str = "wav",
         host_speed: float = 1.0,
         guest_speed: float = 1.0,
+        tts_engine: str = "siliconflow",  # 新增引擎类型参数
         silence_duration: int = 500  # 静音时长(毫秒)
     ) -> bool:
         """
@@ -42,6 +44,7 @@ class DialogueTTS:
             response_format: 输出音频格式
             host_speed: 主持人语速
             guest_speed: 嘉宾语速
+            tts_engine: TTS引擎类型，"siliconflow"或"aliyun"
             silence_duration: 对话之间的静音时长(毫秒)
             
         Returns:
@@ -58,11 +61,18 @@ class DialogueTTS:
                 audio_segments = []
                 prev_role = None
                 
+                # 判断是否需要进行硅基流动TTS的预处理
+                need_preprocess = isinstance(self.tts, SiliconFlowTTS) or tts_engine == "siliconflow"
+                
                 # 为每句对话单独生成音频
                 for i, (role, content) in enumerate(parsed_dialogue):
                     temp_file = os.path.join(temp_dir, f'segment_{i}.wav')
                     voice = host_voice if role == "主持人" else guest_voice
                     speed = host_speed if role == "主持人" else guest_speed
+                    
+                    # 如果是硅基流动TTS，对内容进行预处理
+                    if need_preprocess and isinstance(self.tts, SiliconFlowTTS):
+                        content = self.tts._preprocess_text(content)
                     
                     try:
                         success = self.tts.text_to_speech(
@@ -160,71 +170,3 @@ class DialogueTTS:
                 dialogue_order.append(("嘉宾", len(guest_lines) - 1))
                 
         return host_lines, guest_lines, dialogue_order
-    
-    def _assemble_dialogue_audio(
-        self,
-        host_audio: Optional[AudioSegment],
-        guest_audio: Optional[AudioSegment],
-        host_lines: List[str],
-        guest_lines: List[str],
-        dialogue_order: List[Tuple[str, int]],
-        silence: AudioSegment
-    ) -> AudioSegment:
-        """
-        组装对话音频
-        
-        Args:
-            host_audio: 主持人完整音频
-            guest_audio: 嘉宾完整音频
-            host_lines: 主持人台词列表
-            guest_lines: 嘉宾台词列表
-            dialogue_order: 原始对话顺序
-            silence: 静音片段
-            
-        Returns:
-            AudioSegment: 最终组装的音频
-        """
-        # 空音频片段作为起点
-        final_audio = AudioSegment.empty()
-        
-        # 如果任一角色没有台词，直接返回另一角色的音频
-        if not host_lines and guest_audio:
-            return guest_audio
-        if not guest_lines and host_audio:
-            return host_audio
-            
-        # 计算每句话的近似时长
-        host_char_count = [len(line) for line in host_lines]
-        guest_char_count = [len(line) for line in guest_lines]
-        
-        host_total_chars = sum(host_char_count) if host_char_count else 0
-        guest_total_chars = sum(guest_char_count) if guest_char_count else 0
-        
-        host_duration = len(host_audio) if host_audio else 0
-        guest_duration = len(guest_audio) if guest_audio else 0
-        
-        # 计算每句话的起始位置（基于字符数比例）
-        host_positions = [0]
-        for i in range(1, len(host_lines)):
-            ratio = sum(host_char_count[:i]) / host_total_chars if host_total_chars > 0 else 0
-            host_positions.append(int(ratio * host_duration))
-        host_positions.append(host_duration)
-        
-        guest_positions = [0]
-        for i in range(1, len(guest_lines)):
-            ratio = sum(guest_char_count[:i]) / guest_total_chars if guest_total_chars > 0 else 0
-            guest_positions.append(int(ratio * guest_duration))
-        guest_positions.append(guest_duration)
-        
-        # 按原始顺序拼接
-        for speaker, index in dialogue_order:
-            if speaker == "主持人" and host_audio:
-                start = host_positions[index]
-                end = host_positions[index + 1]
-                final_audio += host_audio[start:end] + silence
-            elif speaker == "嘉宾" and guest_audio:
-                start = guest_positions[index]
-                end = guest_positions[index + 1]
-                final_audio += guest_audio[start:end] + silence
-                
-        return final_audio 

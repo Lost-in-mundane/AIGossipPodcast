@@ -3,15 +3,16 @@ from pydub import AudioSegment
 import tempfile
 import os
 import json
-from tts_api import SiliconFlowTTS
+from tts_factory import TTSFactory
 from multiTTS import DialogueTTS  # 导入对谈模式处理类
 from story_converter import StoryConverter
-from config import TTS_API_KEY, OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL
+from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, DEFAULT_TTS_ENGINE
+import time
 
 app = Flask(__name__)
 
-# 初始化 TTS 实例
-tts = SiliconFlowTTS(api_key=TTS_API_KEY)  # 使用配置文件中的API key
+# 初始化默认 TTS 实例
+tts = TTSFactory.create_tts(DEFAULT_TTS_ENGINE)
 dialogue_tts = DialogueTTS(tts)  # 初始化对谈模式处理器
 story_converter = StoryConverter(
     api_key=OPENAI_API_KEY,
@@ -22,6 +23,13 @@ story_converter = StoryConverter(
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/voices', methods=['GET'])
+def get_voices():
+    """获取指定TTS引擎的音色列表"""
+    engine = request.args.get('engine', DEFAULT_TTS_ENGINE)
+    voices = TTSFactory.get_voices_for_ui(engine)
+    return jsonify(voices)
 
 @app.route('/convert', methods=['POST'])
 def convert():
@@ -35,8 +43,9 @@ def convert():
             return "请求必须包含 'text' 字段", 400
             
         text = data['text']
-        voice = data.get('voice', 'anna')  # 默认使用 anna 音色
+        voice = data.get('voice', 'anna')  # 默认根据引擎不同自动选择默认音色
         speed = float(data.get('speed', 1.0))  # 默认语速 1.0
+        tts_engine = data.get('tts_engine', DEFAULT_TTS_ENGINE)  # 获取TTS引擎选择
         
         if not isinstance(text, str):
             return "'text' 必须是字符串", 400
@@ -49,10 +58,13 @@ def convert():
         with tempfile.TemporaryDirectory() as temp_dir:
             audio_segments = []
             
+            # 创建相应的TTS客户端
+            current_tts = TTSFactory.create_tts(tts_engine)
+            
             # 逐行转换文本为语音
             for i, line in enumerate(lines):
                 temp_file = os.path.join(temp_dir, f'temp_{i}.wav')
-                success = tts.text_to_speech(
+                success = current_tts.text_to_speech(
                     text=line,
                     output_path=temp_file,
                     voice_name=voice,
@@ -107,13 +119,18 @@ def convert_dialogue():
         host_speed = float(data.get('host_speed', 1.0))
         guest_speed = float(data.get('guest_speed', 1.0))
         silence_duration = int(data.get('silence_duration', 500))
+        tts_engine = data.get('tts_engine', DEFAULT_TTS_ENGINE)  # 获取TTS引擎选择
+        
+        # 创建相应的TTS客户端和对谈处理器
+        current_tts = TTSFactory.create_tts(tts_engine)
+        current_dialogue_tts = DialogueTTS(current_tts)
         
         # 创建临时目录和文件
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = os.path.join(temp_dir, 'dialogue_audio.wav')
             
             # 生成对谈音频
-            success = dialogue_tts.generate_dialogue_audio(
+            success = current_dialogue_tts.generate_dialogue_audio(
                 dialogue_text=dialogue_text,
                 output_path=output_path,
                 host_voice=host_voice,
@@ -142,11 +159,26 @@ def convert_story():
     # 处理 GET 请求 - 建立 SSE 连接
     if request.method == 'GET' and request.args.get('stream') == 'true':
         def create_connection():
-            # 发送 SSE 连接确认
-            yield f"data: {json.dumps({'status': 'connected'})}\n\n"
+            try:
+                # 发送 SSE 连接确认
+                yield f"data: {json.dumps({'status': 'connected'})}\n\n"
+                
+                # 保持连接活跃
+                while True:
+                    time.sleep(1)
+                    yield f"data: {json.dumps({'status': 'heartbeat'})}\n\n"
+            except GeneratorExit:
+                print("SSE connection closed by client")
         
-        return Response(stream_with_context(create_connection()), 
-                      mimetype='text/event-stream')
+        return Response(
+            stream_with_context(create_connection()), 
+            mimetype='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive',
+                'X-Accel-Buffering': 'no'
+            }
+        )
     
     # 处理 POST 请求 - 实际处理转换请求
     try:
@@ -188,19 +220,34 @@ def convert_story():
                         if chunk.choices and chunk.choices[0].delta.content:
                             content = chunk.choices[0].delta.content
                             yield f"data: {json.dumps({'content': content})}\n\n"
+                            time.sleep(0.01)  # 添加小延迟，避免数据发送过快
                     
                     # 发送完成标记
                     yield f"data: {json.dumps({'status': 'done'})}\n\n"
                     
                 except Exception as e:
                     # 发送错误消息
-                    yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                    error_msg = str(e)
+                    print(f"Error in story conversion: {error_msg}")
+                    yield f"data: {json.dumps({'error': error_msg})}\n\n"
             
-            return Response(stream_with_context(generate()), 
-                          mimetype='text/event-stream')
+            return Response(
+                stream_with_context(generate()), 
+                mimetype='text/event-stream',
+                headers={
+                    'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
+                    'X-Accel-Buffering': 'no'
+                }
+            )
             
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        error_msg = str(e)
+        print(f"Error in story conversion: {error_msg}")
+        return jsonify({"success": False, "error": error_msg})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000) 
+    # 获取端口环境变量（Railway会自动设置PORT环境变量）
+    port = int(os.environ.get('PORT', 5000))
+    # 生产环境中不开启debug模式
+    app.run(debug=False, host='0.0.0.0', port=port) 
