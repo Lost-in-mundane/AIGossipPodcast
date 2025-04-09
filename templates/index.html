@@ -369,20 +369,64 @@
                     <select id="ttsEngine">
                         <option value="siliconflow">硅基流动TTS</option>
                         <option value="aliyun">阿里云CosyVoice</option>
+                        <option value="minimax">MiniMax TTS</option>
                     </select>
                 </div>
                 <div class="input-group">
                     <label for="basicVoice">音色选择：</label>
                     <select id="basicVoice">
                         <!-- 硅基流动TTS音色 -->
-                        <option value="anna">沉稳女声 (Anna)</option>
-                        <option value="bella">激情女声 (Bella)</option>
-                        <option value="claire">温柔女声 (Claire)</option>
-                        <option value="diana">欢快女声 (Diana)</option>
-                        <option value="alex">沉稳男声 (Alex)</option>
-                        <option value="benjamin">低沉男声 (Benjamin)</option>
-                        <option value="charles">磁性男声 (Charles)</option>
-                        <option value="david">欢快男声 (David)</option>
+                        <optgroup label="硅基流动音色">
+                            <option value="anna">沉稳女声 (Anna)</option>
+                            <option value="bella">激情女声 (Bella)</option>
+                            <option value="claire">温柔女声 (Claire)</option>
+                            <option value="diana">欢快女声 (Diana)</option>
+                            <option value="alex">沉稳男声 (Alex)</option>
+                            <option value="benjamin">低沉男声 (Benjamin)</option>
+                            <option value="charles">磁性男声 (Charles)</option>
+                            <option value="david">欢快男声 (David)</option>
+                        </optgroup>
+                        <!-- MiniMax音色 -->
+                        <optgroup label="MiniMax男声">
+                            <option value="male-qn-qingse">青涩男声</option>
+                            <option value="male-qn-jingying">精英男声</option>
+                            <option value="male-qn-badao">霸道男声</option>
+                            <option value="male-qn-daxuesheng">大学生男声</option>
+                            <option value="audiobook_male_1">男性有声书1</option>
+                            <option value="audiobook_male_2">男性有声书2</option>
+                            <option value="presenter_male">男性主持人</option>
+                            <option value="clever_boy">聪明男孩</option>
+                            <option value="cute_boy">可爱男孩</option>
+                            <option value="junlang_nanyou">俊朗男友</option>
+                            <option value="chunzhen_xuedi">纯真学弟</option>
+                            <option value="lengdan_xiongzhang">冷淡兄长</option>
+                            <option value="badao_shaoye">霸道少爷</option>
+                            <option value="tianxin_xiaoling">甜心小灵</option>
+                            <option value="qiaopi_mengmei">俏皮萌妹</option>
+                            <option value="diadia_xuemei">嗲嗲学妹</option>
+                            <option value="danya_xuejie">淡雅学姐</option>
+                            <option value="Santa_Claus">圣诞老人</option>
+                            <option value="Grinch">格林奇</option>
+                            <option value="Rudolph">鲁道夫</option>
+                            <option value="Arnold">阿诺德</option>
+                            <option value="Charming_Santa">迷人的圣诞老人</option>
+                            <option value="Charming_Lady">迷人女士</option>
+                            <option value="Sweet_Girl">甜心女孩</option>
+                            <option value="Cute_Elf">可爱精灵</option>
+                            <option value="Attractive_Girl">迷人女孩</option>
+                            <option value="Serene_Woman">恬静女士</option>
+                        </optgroup>
+                        <optgroup label="MiniMax女声">
+                            <option value="female-shaonv">少女音色</option>
+                            <option value="female-yujie">御姐音色</option>
+                            <option value="female-chengshu">成熟女声</option>
+                            <option value="female-tianmei">甜美女声</option>
+                            <option value="audiobook_female_1">女性有声书1</option>
+                            <option value="audiobook_female_2">女性有声书2</option>
+                            <option value="presenter_female">女性主持人</option>
+                            <option value="lovely_girl">可爱女孩</option>
+                            <option value="wumei_yujie">妩媚御姐</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div class="input-group">
@@ -417,25 +461,16 @@
         <div class="voice-settings">
             <h3>音色设置</h3>
             <div class="voice-grid">
-                <div class="input-group">
-                    <label for="dialogueTtsEngine">TTS引擎选择：</label>
-                    <select id="dialogueTtsEngine">
+                <div>
+                    <label for="hostTtsEngine">主持人TTS引擎：</label>
+                    <select id="hostTtsEngine">
                         <option value="siliconflow">硅基流动TTS</option>
                         <option value="aliyun">阿里云CosyVoice</option>
+                        <option value="minimax">MiniMax TTS</option>
                     </select>
-                </div>
-                <div>
                     <label for="hostVoice">主持人音色：</label>
                     <select id="hostVoice">
-                        <!-- 硅基流动TTS音色 -->
-                        <option value="anna">沉稳女声 (Anna)</option>
-                        <option value="bella">激情女声 (Bella)</option>
-                        <option value="claire">温柔女声 (Claire)</option>
-                        <option value="diana">欢快女声 (Diana)</option>
-                        <option value="alex">沉稳男声 (Alex)</option>
-                        <option value="benjamin">低沉男声 (Benjamin)</option>
-                        <option value="charles">磁性男声 (Charles)</option>
-                        <option value="david">欢快男声 (David)</option>
+                        <!-- 音色将动态加载 -->
                     </select>
                     <div class="input-group">
                         <label for="hostSpeed">主持人语速：</label>
@@ -446,17 +481,15 @@
                     </div>
                 </div>
                 <div>
+                    <label for="guestTtsEngine">嘉宾TTS引擎：</label>
+                    <select id="guestTtsEngine">
+                        <option value="siliconflow">硅基流动TTS</option>
+                        <option value="aliyun">阿里云CosyVoice</option>
+                        <option value="minimax">MiniMax TTS</option>
+                    </select>
                     <label for="guestVoice">嘉宾音色：</label>
                     <select id="guestVoice">
-                        <!-- 硅基流动TTS音色 -->
-                        <option value="alex">沉稳男声 (Alex)</option>
-                        <option value="benjamin">低沉男声 (Benjamin)</option>
-                        <option value="charles">磁性男声 (Charles)</option>
-                        <option value="david">欢快男声 (David)</option>
-                        <option value="anna">沉稳女声 (Anna)</option>
-                        <option value="bella">激情女声 (Bella)</option>
-                        <option value="claire">温柔女声 (Claire)</option>
-                        <option value="diana">欢快女声 (Diana)</option>
+                        <!-- 音色将动态加载 -->
                     </select>
                     <div class="input-group">
                         <label for="guestSpeed">嘉宾语速：</label>
@@ -523,13 +556,11 @@
         // 根据TTS引擎加载对应的音色
         async function loadVoices(engine, selectElementId) {
             const selectElement = document.getElementById(selectElementId);
+            selectElement.innerHTML = ''; // 清空现有选项
             
-            // 清空现有选项
-            selectElement.innerHTML = '';
-            
+            let voices = [];
             if (engine === 'siliconflow') {
-                // 硅基流动TTS音色
-                const siliconflowVoices = [
+                voices = [
                     {id: 'anna', name: '沉稳女声 (Anna)'},
                     {id: 'bella', name: '激情女声 (Bella)'},
                     {id: 'claire', name: '温柔女声 (Claire)'},
@@ -539,16 +570,8 @@
                     {id: 'charles', name: '磁性男声 (Charles)'},
                     {id: 'david', name: '欢快男声 (David)'}
                 ];
-                
-                siliconflowVoices.forEach(voice => {
-                    const option = document.createElement('option');
-                    option.value = voice.id;
-                    option.textContent = voice.name;
-                    selectElement.appendChild(option);
-                });
             } else if (engine === 'aliyun') {
-                // 阿里云音色
-                const aliyunVoices = [
+                voices = [
                     {id: 'longcheng_v2', name: '阳光男声（龙橙）'},
                     {id: 'longwan_v2', name: '温柔甜美女（龙婉）'},
                     {id: 'longshu_v2', name: '书籍朗读男声（龙书）'},
@@ -557,39 +580,53 @@
                     {id: 'longxiaochun_v2', name: '中英文女声（龙小淳）'},
                     {id: 'longxiaoxia_v2', name: '温柔女声（龙小夏）'}
                 ];
-                
-                aliyunVoices.forEach(voice => {
-                    const option = document.createElement('option');
-                    option.value = voice.id;
-                    option.textContent = voice.name;
-                    selectElement.appendChild(option);
-                });
+            } else if (engine === 'minimax') {
+                voices = [
+                    // 男声
+                    {id: 'male-qn-qingse', name: '青涩男声'}, {id: 'male-qn-jingying', name: '精英男声'}, {id: 'male-qn-badao', name: '霸道男声'}, {id: 'male-qn-daxuesheng', name: '大学生男声'}, {id: 'audiobook_male_1', name: '男性有声书1'}, {id: 'audiobook_male_2', name: '男性有声书2'}, {id: 'presenter_male', name: '男性主持人'}, {id: 'clever_boy', name: '聪明男孩'}, {id: 'cute_boy', name: '可爱男孩'}, {id: 'junlang_nanyou', name: '俊朗男友'}, {id: 'chunzhen_xuedi', name: '纯真学弟'}, {id: 'lengdan_xiongzhang', name: '冷淡兄长'}, {id: 'badao_shaoye', name: '霸道少爷'},
+                    // 女声
+                    {id: 'female-shaonv', name: '少女音色'}, {id: 'female-yujie', name: '御姐音色'}, {id: 'female-chengshu', name: '成熟女声'}, {id: 'female-tianmei', name: '甜美女声'}, {id: 'audiobook_female_1', name: '女性有声书1'}, {id: 'audiobook_female_2', name: '女性有声书2'}, {id: 'presenter_female', name: '女性主持人'}, {id: 'lovely_girl', name: '可爱女孩'}, {id: 'wumei_yujie', name: '妩媚御姐'},
+                    // 特色
+                    {id: 'Santa_Claus', name: '圣诞老人'}, {id: 'Grinch', name: '格林奇'}, {id: 'Rudolph', name: '鲁道夫'}, {id: 'Arnold', name: '阿诺德'}, {id: 'Charming_Santa', name: '迷人的圣诞老人'}, {id: 'Charming_Lady', name: '迷人女士'}, {id: 'Sweet_Girl', name: '甜心女孩'}, {id: 'Cute_Elf', name: '可爱精灵'}, {id: 'Attractive_Girl', name: '迷人女孩'}, {id: 'Serene_Woman', name: '恬静女士'}
+                ];
             }
+            
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.id;
+                option.textContent = voice.name;
+                selectElement.appendChild(option);
+            });
         }
         
-        // 设置TTS引擎切换事件监听
+        // 更新：设置TTS引擎切换事件监听 (为主持人和嘉宾分别设置)
         document.getElementById('ttsEngine').addEventListener('change', function() {
             loadVoices(this.value, 'basicVoice');
         });
         
-        document.getElementById('dialogueTtsEngine').addEventListener('change', function() {
+        document.getElementById('hostTtsEngine').addEventListener('change', function() {
             loadVoices(this.value, 'hostVoice');
+        });
+        
+        document.getElementById('guestTtsEngine').addEventListener('change', function() {
             loadVoices(this.value, 'guestVoice');
         });
         
-        // 页面加载时初始化音色列表
+        // 更新：页面加载时初始化音色列表
         document.addEventListener('DOMContentLoaded', function() {
-            // 设置基础模式为默认显示
-            document.getElementById('basicMode').style.display = 'block';
+            document.getElementById('basicMode').style.display = 'block'; // 默认显示基础模式
             
-            // 加载默认引擎的音色
-            const defaultEngine = document.getElementById('ttsEngine').value;
-            loadVoices(defaultEngine, 'basicVoice');
+            // 加载基础模式默认引擎的音色
+            const basicEngine = document.getElementById('ttsEngine').value;
+            loadVoices(basicEngine, 'basicVoice');
             
-            // 加载对谈模式的音色
-            const dialogueEngine = document.getElementById('dialogueTtsEngine').value;
-            loadVoices(dialogueEngine, 'hostVoice');
-            loadVoices(dialogueEngine, 'guestVoice');
+            // 加载对谈模式主持人默认引擎的音色
+            const hostEngine = document.getElementById('hostTtsEngine').value;
+            loadVoices(hostEngine, 'hostVoice');
+            
+            // 加载对谈模式嘉宾默认引擎的音色
+            const guestEngine = document.getElementById('guestTtsEngine').value;
+            loadVoices(guestEngine, 'guestVoice');
         });
         
         // 基础模式转换功能
@@ -643,14 +680,15 @@
             }
         }
         
-        // 对谈模式转换功能
+        // 更新：对谈模式转换功能
         async function convertDialogue() {
             const dialogueText = document.getElementById('dialogueText').value;
             const hostVoice = document.getElementById('hostVoice').value;
             const guestVoice = document.getElementById('guestVoice').value;
             const hostSpeed = parseFloat(document.getElementById('hostSpeed').value);
             const guestSpeed = parseFloat(document.getElementById('guestSpeed').value);
-            const ttsEngine = document.getElementById('dialogueTtsEngine').value;
+            const hostTtsEngine = document.getElementById('hostTtsEngine').value; // 获取主持人引擎
+            const guestTtsEngine = document.getElementById('guestTtsEngine').value; // 获取嘉宾引擎
             const status = document.getElementById('dialogueStatus');
             const audioPlayer = document.getElementById('dialogueAudioPlayer');
             const button = document.querySelector('#dialogueMode button');
@@ -660,13 +698,11 @@
                 return;
             }
             
-            // 检查文本格式是否包含标记
             if (!dialogueText.includes('[主持人]') && !dialogueText.includes('[嘉宾]')) {
                 alert('请使用[主持人]和[嘉宾]标记标注不同角色的对话');
                 return;
             }
 
-            // 禁用按钮和输入框
             button.disabled = true;
             status.style.display = 'block';
             status.textContent = '正在生成对谈音频...';
@@ -684,7 +720,8 @@
                         guest_voice: guestVoice,
                         host_speed: hostSpeed,
                         guest_speed: guestSpeed,
-                        tts_engine: ttsEngine
+                        host_tts_engine: hostTtsEngine, // 发送主持人引擎
+                        guest_tts_engine: guestTtsEngine // 发送嘉宾引擎
                     })
                 });
 
@@ -718,138 +755,128 @@
             }
 
             status.textContent = '正在准备转换...';
-            // 显示结果区域，但内容清空
             result.value = '';
             result.style.display = 'block';
             copyBtn.style.display = 'none';
 
-            // 检查浏览器是否支持 EventSource
-            if (typeof EventSource !== 'undefined') {
-                // 关闭任何可能存在的连接
-                if (window.storyEventSource) {
-                    window.storyEventSource.close();
-                }
-                
-                // 创建新的 EventSource 连接
-                let eventUrl = `/convert_story?stream=true&t=${Date.now()}`;
-                window.storyEventSource = new EventSource(eventUrl);
-                let fullText = '';
-                let isConnected = false;
-
-                // 处理连接事件
-                window.storyEventSource.onopen = function() {
-                    isConnected = true;
-                    status.textContent = '连接已建立，发送转换请求...';
-                    
-                    // 连接建立后发送转换请求
-                    fetch('/convert_story', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            story_text: storyText,
-                            custom_prompt: customPrompt || null,
-                            use_stream: true
-                        })
-                    });
+            try {
+                status.textContent = '正在发送转换请求...';
+                const requestData = {
+                    story_text: storyText,
+                    custom_prompt: customPrompt || null,
+                    use_stream: true
                 };
+                console.log('发送请求数据:', requestData);
                 
-                // 处理消息
-                window.storyEventSource.onmessage = function(e) {
+                const response = await fetch('/convert_story', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('收到响应:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: response.headers.get('content-type'),
+                    headers: Object.fromEntries([...response.headers.entries()])
+                });
+
+                if (!response.ok) {
+                    let errorMsg = `HTTP 错误，状态码: ${response.status}`;
                     try {
-                        const data = JSON.parse(e.data);
-                        
-                        if (data.status === 'connected') {
-                            // 连接确认
-                            status.textContent = '连接成功，等待处理...';
-                        } else if (data.status === 'start') {
-                            // 开始接收数据
-                            status.textContent = '正在生成回答...';
-                        } else if (data.content) {
-                            // 接收内容
-                            fullText += data.content;
-                            result.value = fullText;
-                            // 自动滚动到底部
-                            result.scrollTop = result.scrollHeight;
-                        } else if (data.status === 'done') {
-                            // 完成接收
-                            status.textContent = '转换成功';
-                            copyBtn.style.display = 'inline-block';
-                            // 关闭连接
-                            window.storyEventSource.close();
-                            window.storyEventSource = null;
-                        } else if (data.error) {
-                            // 错误处理
-                            status.textContent = '转换失败: ' + data.error;
-                            window.storyEventSource.close();
-                            window.storyEventSource = null;
-                        }
-                    } catch (err) {
-                        console.error('解析SSE数据失败:', err, e.data);
-                        status.textContent = '处理数据时出错';
+                        const errorData = await response.json();
+                        errorMsg = errorData.error || errorMsg;
+                    } catch (e) {
+                        console.error('解析错误响应失败:', e);
                     }
-                };
-                
-                // 错误处理
-                window.storyEventSource.onerror = function(e) {
-                    console.error('SSE连接错误:', e);
-                    status.textContent = '连接错误，尝试使用标准模式...';
-                    
-                    if (window.storyEventSource) {
-                        window.storyEventSource.close();
-                        window.storyEventSource = null;
-                    }
-                    
-                    // 判断是否曾经连接成功过
-                    if (!isConnected) {
-                        // 如果从未连接成功，切换到标准模式
-                        fallbackToNonStream();
-                    }
-                };
-                
-                // 设置超时，避免长时间没有响应
-                setTimeout(function() {
-                    if (fullText === '' && window.storyEventSource) {
-                        status.textContent = '响应超时，切换到标准模式...';
-                        window.storyEventSource.close();
-                        window.storyEventSource = null;
-                        fallbackToNonStream();
-                    }
-                }, 10000); // 10秒超时
-            } else {
-                // 浏览器不支持 EventSource
-                status.textContent = '您的浏览器不支持流式输出，使用标准模式...';
-                fallbackToNonStream();
-            }
-            
-            // 回退函数 - 使用标准非流式请求
-            async function fallbackToNonStream() {
-                try {
-                    status.textContent = '使用标准模式转换中...';
-                    
-                    const response = await fetch('/convert_story', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ 
-                            story_text: storyText,
-                            custom_prompt: customPrompt || null,
-                            use_stream: false
-                        })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        result.value = data.dialogue_text;
-                        copyBtn.style.display = 'inline-block';
-                        status.textContent = '转换成功';
-                    } else {
-                        result.value = '';
-                        status.textContent = '转换失败: ' + data.error;
-                    }
-                } catch (err) {
-                    console.error('标准模式错误:', err);
-                    status.textContent = '错误: ' + err.message;
+                    throw new Error(errorMsg);
                 }
+
+                if (!response.body) {
+                    throw new Error('浏览器不支持流式响应或响应体无效');
+                }
+
+                status.textContent = '正在接收结果...';
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let fullText = '';
+                let buffer = '';
+                let chunkCount = 0;
+
+                while (true) {
+                    const {done, value} = await reader.read();
+                    chunkCount++;
+                    console.log(`读取数据块 #${chunkCount}:`, {
+                        done,
+                        byteLength: value ? value.length : 0,
+                        value: value ? new TextDecoder().decode(value) : null
+                    });
+                    
+                    if (done) {
+                        console.log('数据接收完成，总共接收', chunkCount, '个数据块');
+                        break;
+                    }
+
+                    buffer += decoder.decode(value, {stream: true});
+                    console.log('当前缓冲区:', buffer);
+                    
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const data = JSON.parse(line.substring(5).trim());
+                                console.log('解析的数据:', data);
+                                
+                                if (data.status === 'start') {
+                                    status.textContent = '正在生成回答...';
+                                } else if (data.content) {
+                                    fullText += data.content;
+                                    result.value = fullText;
+                                    result.scrollTop = result.scrollHeight;
+                                    console.log('更新文本:', fullText);
+                                } else if (data.status === 'done') {
+                                    status.textContent = '转换成功';
+                                    copyBtn.style.display = 'inline-block';
+                                    console.log('转换完成');
+                                } else if (data.error) {
+                                    console.error('收到错误:', data.error);
+                                    throw new Error(data.error);
+                                }
+                            } catch (err) {
+                                console.error('解析流数据失败:', {
+                                    error: err,
+                                    line: line,
+                                    currentBuffer: buffer
+                                });
+                                if (!fullText) {
+                                    throw new Error('处理数据时出错');
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!fullText) {
+                    console.warn('未收到任何有效内容');
+                    if (status.textContent === '正在接收结果...') {
+                        status.textContent = '转换成功，但未返回有效内容';
+                    }
+                } else if (status.textContent.startsWith('正在')) {
+                    status.textContent = '转换完成';
+                    copyBtn.style.display = 'inline-block';
+                }
+
+            } catch (err) {
+                console.error('转换过程出错:', {
+                    error: err,
+                    message: err.message,
+                    stack: err.stack
+                });
+                status.textContent = '转换失败: ' + err.message;
+                result.value = '';
+                copyBtn.style.display = 'none';
             }
         }
 

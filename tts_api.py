@@ -48,16 +48,20 @@ class SiliconFlowTTS:
         Returns:
             str: 处理后的文本
         """
-        # 0. 最高优先级：将所有感叹号替换为空格
-        text = text.replace('！', ' ')
+        # 0. 修正错误的强调标签，处理所有可能的方括号情况
+        # 先处理开始标签
+        text = re.sub(r'[\[<]strong[\]>]', '<strong>', text)
+        # 再处理结束标签
+        text = re.sub(r'[\[<]/strong[\]>]', '</strong>', text)
         
         # 1. 替换所有"啊"为"呀"
         text = text.replace('啊', '呀')
         
-        # 2. 确保文本末尾有标点符号
-        # 判断最后一个字符是否为标点符号
-        if text and not re.search(r'[，。！？、：；""''（）【】《》…,.!?:;\'\"\[\]\(\)<>]$', text):
-            text = text + '。。'  # 如果没有标点符号，添加句号
+        # 2. 处理末尾标点：移除原有标点（若有），并统一添加多个句号
+        replacement_periods = '。。。。。。。。。。。。。。。'
+        punctuation_pattern = r'[，。！？、：；""''（）【】《》…,.!?:;\'\"\[\]\(\)<>]$'
+        text = re.sub(punctuation_pattern, '', text.strip()) 
+        text += replacement_periods
             
         return text
     
