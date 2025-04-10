@@ -1,6 +1,8 @@
 import openai
 import os
 import time
+import asyncio  # 导入 asyncio
+import httpx  # 导入 httpx
 from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL
 
 class StoryConverter:
@@ -24,22 +26,52 @@ class StoryConverter:
         if not self.model:
             raise ValueError("未设置 OpenAI Model")
         
-        # 配置openai客户端
+        # 配置HTTP客户端（确保不使用代理）
+        sync_http_client = httpx.Client(proxy=None, transport=httpx.HTTPTransport(retries=1))
+        async_http_client = httpx.AsyncClient(proxy=None, transport=httpx.AsyncHTTPTransport(retries=1))
+        
+        # 配置 openai 客户端
         try:
-            print("正在创建 OpenAI 客户端...")
+            print("正在创建异步 OpenAI 客户端...")
+            # 显式传递我们创建的、无代理的httpx客户端
+            self.async_client = openai.AsyncOpenAI(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                timeout=openai.Timeout(
+                    connect=30.0,
+                    read=600.0,
+                    write=30.0,
+                    pool=30.0
+                ),
+                http_client=async_http_client # 传递自定义的AsyncClient
+            )
+            print("异步 OpenAI 客户端创建成功")
+            
+            print("正在创建同步 OpenAI 客户端...")
+            # 显式传递我们创建的、无代理的httpx客户端
             self.client = openai.OpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
                 timeout=openai.Timeout(
-                    connect=30.0,    # 增加连接超时
-                    read=600.0,      # 增加读取超时
-                    write=30.0,      # 增加写入超时
-                    pool=30.0        # 增加连接池超时
-                )
+                    connect=30.0,
+                    read=600.0,
+                    write=30.0,
+                    pool=30.0
+                ),
+                http_client=sync_http_client # 传递自定义的Client
             )
-            print("OpenAI 客户端创建成功")
+            print("同步 OpenAI 客户端创建成功")
         except Exception as e:
             print(f"创建 OpenAI 客户端失败: {str(e)}")
+            # 如果创建失败，尝试关闭已创建的http客户端
+            try:
+                asyncio.run(async_http_client.aclose())
+            except Exception:
+                pass
+            try:
+                sync_http_client.close()
+            except Exception:
+                pass
             raise
         
         # 系统提示词
@@ -55,7 +87,7 @@ class StoryConverter:
 - 主持人偶尔的追问来引导故事的描述
 - 主持人神来之笔、一针见血的评价
 - 大量使用使用富文本标记和自然语言指令来表现对话中的情感、语气和停顿
-- 始终以嘉宾讲述故事开启对话
+- 开头主持人先介绍故事最有意思的地方来吸引听众，然后嘉宾开始讲述故事
 - 包括自然的说话模式，包括偶尔的语音填充（例如"嗯"，"好"，"你知道"）
 
 # 富文本标记和自然语言指令使用规则
@@ -101,14 +133,8 @@ class StoryConverter:
 符号: [mm]
 示例: [mm] 嗯 应该是吧
 
-**自然语言命令控制方式**
-使用自然语言控制时，需要在自然语言描述后添加特殊结束标记 <|endofprompt|>，然后是要生成的文本内容。
-这些自然语言描述可以包括：情感控制（如快乐、悲伤等）、语速控制
-示例：
-Can you say it with a happy emotion? <|endofprompt|> Today is really happy, Spring Festival is coming! I'm so happy, Spring Festival is coming! [laughter] [breath].
-
 **表示停顿的方式**
-虽然没有专门表示停顿的标记，但可以通过以下方式表示停顿：添加句号、利用富文本标记中的语气标记来实现停顿效果
+虽然没有专门表示停顿的标记，但可以通过以下方式表示停顿：添加多个句号、利用富文本标记中的语气标记来实现停顿效果
 
 
 # 对话风格指南
@@ -129,9 +155,48 @@ Can you say it with a happy emotion? <|endofprompt|> Today is really happy, Spri
    
 记住格式要求： 每一行对话必须以[主持人]或[嘉宾]标签开头，不允许出现没有角色标签的对话行，角色标签必须紧贴对话内容，中间不能有空格"""
     
+    # 新增异步流式方法
+    async def convert_story_stream(self, story_text, custom_prompt=None):
+        """
+        将故事文本转换为对话形式（异步流式输出）
+        
+        Args:
+            story_text: 要转换的故事文本
+            custom_prompt: 自定义系统提示词（可选）
+            
+        Yields:
+            str: 对话脚本的数据块 (content chunk)
+            
+        Raises:
+            Exception: 如果 OpenAI API 调用失败或其他错误发生
+        """
+        try:
+            print(f"调用异步流式转换，模型: {self.model}, 文本长度: {len(story_text)}")
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": custom_prompt or self.system_prompt},
+                    {"role": "user", "content": story_text}
+                ],
+                temperature=0.7,
+                stream=True  # 启用流式输出
+            )
+            
+            async for chunk in response:
+                if hasattr(chunk.choices[0].delta, 'content') and chunk.choices[0].delta.content is not None:
+                    content = chunk.choices[0].delta.content
+                    if content:
+                        yield content  # 直接 yield 内容块
+                        
+        except Exception as e:
+            print(f"异步流式转换错误: {e}")
+            # 让异常向上冒泡，由调用者处理
+            raise
+    
+    # 保留原有的同步方法，以保持兼容性
     def convert_story(self, story_text, custom_prompt=None):
         """
-        将故事文本转换为对话形式
+        将故事文本转换为对话形式（同步方法）
         
         Args:
             story_text: 要转换的故事文本
@@ -183,4 +248,43 @@ Can you say it with a happy emotion? <|endofprompt|> Today is really happy, Spri
                 "success": False,
                 "error": str(e),
                 "partial_result": full_response if 'full_response' in locals() else None
+            }
+    
+    # 新增异步非流式方法
+    async def convert_story_async(self, story_text, custom_prompt=None):
+        """
+        将故事文本转换为对话形式（异步非流式方法）
+        
+        Args:
+            story_text: 要转换的故事文本
+            custom_prompt: 自定义系统提示词（可选）
+            
+        Returns:
+            dict: 包含转换结果的字典
+        """
+        try:
+            # 使用异步客户端，非流式输出
+            response = await self.async_client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": custom_prompt or self.system_prompt},
+                    {"role": "user", "content": story_text}
+                ],
+                temperature=0.7,
+                stream=False # 非流式
+            )
+            
+            full_response = response.choices[0].message.content
+            
+            return {
+                "success": True,
+                "dialogue_text": full_response
+            }
+            
+        except Exception as e:
+            print(f"异步非流式转换错误: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "partial_result": None
             } 

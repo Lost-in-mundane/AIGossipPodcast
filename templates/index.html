@@ -354,6 +354,7 @@
         <button class="tablinks active" onclick="openTab(event, 'basicMode')">基础模式</button>
         <button class="tablinks" onclick="openTab(event, 'dialogueMode')">对谈模式</button>
         <button class="tablinks" onclick="openTab(event, 'storyMode')">故事转换</button>
+        <button class="tablinks" onclick="openTab(event, 'englishScriptMode')">生成英文脚本</button>
     </div>
     
     <!-- 基础模式 -->
@@ -405,16 +406,16 @@
                             <option value="qiaopi_mengmei">俏皮萌妹</option>
                             <option value="diadia_xuemei">嗲嗲学妹</option>
                             <option value="danya_xuejie">淡雅学姐</option>
-                            <option value="Santa_Claus">圣诞老人</option>
-                            <option value="Grinch">格林奇</option>
-                            <option value="Rudolph">鲁道夫</option>
-                            <option value="Arnold">阿诺德</option>
-                            <option value="Charming_Santa">迷人的圣诞老人</option>
-                            <option value="Charming_Lady">迷人女士</option>
-                            <option value="Sweet_Girl">甜心女孩</option>
-                            <option value="Cute_Elf">可爱精灵</option>
-                            <option value="Attractive_Girl">迷人女孩</option>
-                            <option value="Serene_Woman">恬静女士</option>
+                            <option value="Santa_Claus">圣诞老人_en</option>
+                            <option value="Grinch">格林奇_en</option>
+                            <option value="Rudolph">鲁道夫_en</option>
+                            <option value="Arnold">阿诺德_en</option>
+                            <option value="Charming_Santa">迷人的圣诞老人_en</option>
+                            <option value="Charming_Lady">迷人女士_en</option>
+                            <option value="Sweet_Girl">甜心女孩_en</option>
+                            <option value="Cute_Elf">可爱精灵_en</option>
+                            <option value="Attractive_Girl">迷人女孩_en</option>
+                            <option value="Serene_Woman">恬静女士_en</option>
                         </optgroup>
                         <optgroup label="MiniMax女声">
                             <option value="female-shaonv">少女音色</option>
@@ -525,9 +526,40 @@
             <span id="storyStatus"></span>
         </div>
         
-        <textarea id="convertedDialogue" placeholder="转换结果..." style="display: none;"></textarea>
+        <div class="mt-3">
+            <textarea id="result" class="form-control" rows="10" readonly></textarea>
+            <div class="mt-2">
+                <button id="copyButton" class="btn btn-secondary" onclick="copyResult()" style="display: none;">复制结果</button>
+                <button id="translateButton" class="btn btn-primary" style="display: none;" onclick="translateScript()">转换为英文脚本</button>
+            </div>
+        </div>
         
         <button onclick="copyToDialogueMode()" style="display: none;" id="copyBtn">复制到对谈模式</button>
+    </div>
+    
+    <!-- 新增：生成英文脚本模式 -->
+    <div id="englishScriptMode" class="tabcontent">
+        <h2>生成英文脚本</h2>
+        <p class="subtitle" style="text-align: left; margin-bottom: 20px;">输入故事原文，系统将自动完成"故事转中文对话"和"中文对话转英文"两步操作。</p>
+
+        <textarea id="eng_storyText" placeholder="请输入故事文本..."></textarea>
+
+        <div class="prompt-section">
+            <label for="eng_customPrompt">自定义提示词(可选，用于故事转换步骤):</label>
+            <textarea id="eng_customPrompt" placeholder="留空则使用默认提示词..."></textarea>
+        </div>
+
+        <div class="control-container">
+            <button id="eng_generateButton" onclick="generateEnglishScript()">生成英文脚本</button>
+            <div id="eng_status" style="display: none;"></div>
+        </div>
+
+        <div class="mt-3">
+            <textarea id="eng_result" class="form-control" rows="10" readonly placeholder="生成的英文脚本将显示在这里..."></textarea>
+            <div class="mt-2">
+                <button id="eng_copyButton" class="btn btn-secondary" onclick="copyEngResult()" style="display: none;">复制英文结果</button>
+            </div>
+        </div>
     </div>
     
     <div class="footer">
@@ -746,18 +778,22 @@
             const storyText = document.getElementById('storyText').value;
             const customPrompt = document.getElementById('customPrompt').value;
             const status = document.getElementById('storyStatus');
-            const result = document.getElementById('convertedDialogue');
-            const copyBtn = document.getElementById('copyBtn');
-            
+            const resultTextarea = document.getElementById('result');
+            const copyBtn = document.getElementById('copyButton');
+            const translateBtn = document.getElementById('translateButton');
+            const copyToDialogueBtn = document.getElementById('copyBtn');
+
             if (!storyText.trim()) {
                 alert('请输入故事文本');
                 return;
             }
 
             status.textContent = '正在准备转换...';
-            result.value = '';
-            result.style.display = 'block';
+            resultTextarea.value = '';
+            resultTextarea.style.display = 'block';
             copyBtn.style.display = 'none';
+            translateBtn.style.display = 'none';
+            copyToDialogueBtn.style.display = 'none';
 
             try {
                 status.textContent = '正在发送转换请求...';
@@ -833,12 +869,16 @@
                                     status.textContent = '正在生成回答...';
                                 } else if (data.content) {
                                     fullText += data.content;
-                                    result.value = fullText;
-                                    result.scrollTop = result.scrollHeight;
+                                    resultTextarea.value = fullText;
+                                    resultTextarea.scrollTop = resultTextarea.scrollHeight;
                                     console.log('更新文本:', fullText);
                                 } else if (data.status === 'done') {
                                     status.textContent = '转换成功';
                                     copyBtn.style.display = 'inline-block';
+                                    translateBtn.style.display = 'inline-block';
+                                    translateBtn.disabled = false;
+                                    translateBtn.textContent = '转换为英文脚本';
+                                    copyToDialogueBtn.style.display = 'inline-block';
                                     console.log('转换完成');
                                 } else if (data.error) {
                                     console.error('收到错误:', data.error);
@@ -875,13 +915,15 @@
                     stack: err.stack
                 });
                 status.textContent = '转换失败: ' + err.message;
-                result.value = '';
+                resultTextarea.value = '';
                 copyBtn.style.display = 'none';
+                translateBtn.style.display = 'none';
+                copyToDialogueBtn.style.display = 'none';
             }
         }
 
         function copyToDialogueMode() {
-            const text = document.getElementById('convertedDialogue').value;
+            const text = document.getElementById('result').value;
             document.getElementById('dialogueText').value = text;
             document.querySelector('.tablinks[onclick*="dialogueMode"]').click();
         }
@@ -912,6 +954,294 @@
         document.getElementById('guestSpeed').addEventListener('change', function() {
             validateSpeed(this);
         });
+
+        function handleFinalResult(finalResult) {
+            document.getElementById('result').value = finalResult;
+            document.getElementById('copyButton').style.display = 'inline-block';
+            document.getElementById('translateButton').style.display = 'inline-block';
+            document.getElementById('translateButton').disabled = false;
+        }
+
+        async function translateScript() {
+            const resultTextarea = document.getElementById('result');
+            const resultText = resultTextarea.value;
+            if (!resultText) {
+                alert('没有可翻译的内容');
+                return;
+            }
+
+            const translateButton = document.getElementById('translateButton');
+            const copyButton = document.getElementById('copyButton');
+            
+            // --- 初始化UI ---
+            translateButton.disabled = true;
+            translateButton.textContent = '翻译中...';
+            let originalText = resultTextarea.value; // 保存原始中文文本
+            resultTextarea.value = ''; // 清空准备接收流式结果
+            let accumulatedTranslation = '';
+            let translationError = null;
+
+            try {
+                const response = await fetch('/translate_script', { // 确认 URL 正确
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream' // 期望 SSE
+                     },
+                    body: JSON.stringify({ text_to_translate: resultText })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`翻译请求设置失败 (HTTP ${response.status})`);
+                }
+                if (!response.body) {
+                    throw new Error('浏览器不支持流式响应或响应体无效');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const jsonData = JSON.parse(line.substring(5).trim());
+                                if (jsonData.content) {
+                                    accumulatedTranslation += jsonData.content;
+                                    resultTextarea.value = accumulatedTranslation;
+                                    resultTextarea.scrollTop = resultTextarea.scrollHeight;
+                                } else if (jsonData.error) {
+                                    throw new Error(`翻译出错: ${jsonData.error}`);
+                                } else if (jsonData.status === 'done') {
+                                     console.log("手动翻译流处理完成");
+                                }
+                            } catch (e) {
+                                console.warn("解析手动翻译 SSE 数据失败:", line, e);
+                            }
+                        }
+                    }
+                }
+                 // 流结束后检查是否有结果
+                 if (!accumulatedTranslation) {
+                     throw new Error("翻译未返回有效内容");
+                 }
+
+            } catch (error) {
+                console.error('手动翻译错误:', error);
+                alert(`翻译失败: ${error.message}`);
+                translationError = error.message;
+                resultTextarea.value = originalText; // 恢复原始中文文本
+            } finally {
+                translateButton.disabled = false;
+                translateButton.textContent = '转换为英文脚本';
+            }
+            
+            // 翻译成功后处理按钮
+            if (!translationError) {
+                translateButton.style.display = 'none'; // 隐藏翻译按钮
+                // 更新复制按钮，使其复制翻译后的内容
+                copyButton.onclick = () => {
+                     navigator.clipboard.writeText(accumulatedTranslation)
+                         .then(() => console.log('翻译后的英文脚本已复制'))
+                         .catch(err => console.error('复制失败: ', err));
+                 };
+            } else {
+                // 翻译失败，确保翻译按钮可见
+                 translateButton.style.display = 'inline-block';
+                 // 确保复制按钮复制的是原始中文（如果需要的话）
+                 copyButton.onclick = () => {
+                     navigator.clipboard.writeText(originalText)
+                         .then(() => console.log('原始中文脚本已复制'))
+                         .catch(err => console.error('复制失败: ', err));
+                 };
+            }
+        }
+
+        async function generateEnglishScript() {
+            const storyText = document.getElementById('eng_storyText').value;
+            const customPrompt = document.getElementById('eng_customPrompt').value;
+            const generateButton = document.getElementById('eng_generateButton');
+            const statusDisplay = document.getElementById('eng_status');
+            const resultTextarea = document.getElementById('eng_result');
+            const copyButton = document.getElementById('eng_copyButton');
+
+            if (!storyText) {
+                alert('请输入故事原文');
+                return;
+            }
+
+            generateButton.disabled = true;
+            statusDisplay.style.display = 'block';
+            statusDisplay.textContent = '步骤 1/2: 正在转换故事为中文对话...';
+            statusDisplay.style.backgroundColor = 'rgba(108, 92, 231, 0.1)';
+            resultTextarea.value = '';
+            copyButton.style.display = 'none';
+
+            let accumulatedChineseScript = '';
+            let conversionError = null;
+
+            try {
+                const response = await fetch('/convert_story', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({
+                        story_text: storyText,
+                        custom_prompt: customPrompt || null,
+                        use_stream: true
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`故事转换请求失败 (HTTP ${response.status})`);
+                }
+                if (!response.body) {
+                    throw new Error('浏览器不支持流式响应或响应体无效');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const jsonData = JSON.parse(line.substring(5).trim());
+                                if (jsonData.content) {
+                                    accumulatedChineseScript += jsonData.content;
+                                } else if (jsonData.error) {
+                                    throw new Error(`故事转换出错: ${jsonData.error}`);
+                                }
+                            } catch (e) {
+                                console.warn("解析步骤1 SSE数据失败:", line, e);
+                            }
+                        }
+                    }
+                }
+                
+                if (!accumulatedChineseScript) {
+                    throw new Error("故事转换步骤未返回有效内容");
+                }
+                console.log("步骤 1 完成，中文脚本:", accumulatedChineseScript);
+
+            } catch (error) {
+                console.error('步骤 1 错误:', error);
+                statusDisplay.textContent = `步骤 1 失败: ${error.message}`;
+                statusDisplay.style.backgroundColor = 'rgba(253, 121, 168, 0.1)';
+                conversionError = error.message;
+            } finally {
+            }
+
+            if (conversionError) {
+                generateButton.disabled = false;
+                return;
+            }
+
+            statusDisplay.textContent = '步骤 2/2: 正在翻译为英文脚本...';
+            statusDisplay.style.backgroundColor = 'rgba(0, 210, 211, 0.1)';
+            let translationError = null;
+            let englishScript = '';
+
+            try {
+                const translateResponse = await fetch('/translate_script', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream'
+                    },
+                    body: JSON.stringify({ text_to_translate: accumulatedChineseScript })
+                });
+
+                if (!translateResponse.ok) {
+                    throw new Error(`翻译请求设置失败 (HTTP ${translateResponse.status})`);
+                }
+                if (!translateResponse.body) {
+                     throw new Error('浏览器不支持流式响应或响应体无效');
+                }
+
+                const reader = translateResponse.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const jsonData = JSON.parse(line.substring(5).trim());
+                                if (jsonData.content) {
+                                    englishScript += jsonData.content;
+                                    resultTextarea.value = englishScript;
+                                    resultTextarea.scrollTop = resultTextarea.scrollHeight;
+                                } else if (jsonData.error) {
+                                    throw new Error(`翻译流出错: ${jsonData.error}`);
+                                } else if (jsonData.status === 'done') {
+                                    console.log("翻译流处理完成");
+                                }
+                            } catch (e) {
+                                console.warn("解析步骤2 SSE数据失败:", line, e);
+                            }
+                        }
+                    }
+                }
+                 // 流结束后检查是否有结果
+                 if (!englishScript) {
+                     throw new Error("翻译步骤未返回有效内容");
+                 }
+
+            } catch (error) {
+                console.error('步骤 2 错误:', error);
+                statusDisplay.textContent = `步骤 2 失败: ${error.message}`;
+                statusDisplay.style.backgroundColor = 'rgba(253, 121, 168, 0.1)';
+                translationError = error.message;
+            } finally {
+                generateButton.disabled = false;
+            }
+
+            if (!translationError) {
+                statusDisplay.textContent = '英文脚本生成成功!';
+                statusDisplay.style.backgroundColor = 'rgba(0, 184, 148, 0.1)';
+                resultTextarea.value = englishScript;
+                copyButton.style.display = 'inline-block';
+            }
+        }
+
+        function copyEngResult() {
+            const resultText = document.getElementById('eng_result').value;
+            if (!resultText) return;
+            navigator.clipboard.writeText(resultText)
+                .then(() => console.log('英文脚本已复制'))
+                .catch(err => console.error('复制英文脚本失败: ', err));
+        }
+
+        function copyResult() {
+            const resultText = document.getElementById('result').value;
+            if (!resultText) return;
+            navigator.clipboard.writeText(resultText)
+                .then(() => console.log('中文脚本已复制'))
+                .catch(err => console.error('复制中文脚本失败: ', err));
+        }
     </script>
 </body>
 </html> 

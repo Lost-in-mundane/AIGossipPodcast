@@ -20,4 +20,9 @@ DEFAULT_TTS_ENGINE = "siliconflow"  # 默认TTS引擎: "siliconflow", "aliyun" �
 # 例如：
 # AZURE_API_KEY = "your-azure-api-key"
 # AZURE_BASE_URL = "https://your-resource.openai.azure.com"
-# AZURE_MODEL = "your-deployment-name" 
+# AZURE_MODEL = "your-deployment-name"
+
+# 翻译专用配置
+TRANSLATION_OPENAI_API_KEY = "sk-JaXkIreIGs3Ci3F3JZkgojqGcKT14JwbwhFA9OsLHE0iEAEd"  
+TRANSLATION_OPENAI_BASE_URL = "https://chat.cloudapi.vip/v1" 
+TRANSLATION_OPENAI_MODEL = "claude-3-7-sonnet-20250219"

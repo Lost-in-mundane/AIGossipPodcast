@@ -1,6 +1,6 @@
 # LDtts - 文本转语音工具
 
-这是一个基于 Silicon Flow TTS API 的文本转语音工具，支持多行文本处理和音频合并。
+这是一个基于多种TTS API的文本转语音工具，支持多行文本处理和音频合并，使用FastAPI构建。
 
 ## 功能特点
 
@@ -10,33 +10,43 @@
 - 支持调整语速和音量
 - 支持多种音色选择
 - 支持多种音频格式输出
-- **【新增】支持对谈模式，可生成主持人和嘉宾的对话形式音频**
+- **支持对谈模式，可生成主持人和嘉宾的对话形式音频**
+- **支持故事转换为对话脚本**
+- **支持将中文对话翻译为英文**
+- **支持多种TTS引擎：Silicon Flow、阿里云CosyVoice、MiniMax**
 
 ## 安装依赖
 
 ```bash
-pip install flask pydub requests
-conda install ffmpeg  # 或使用其他方式安装 ffmpeg
+pip install -r requirements.txt
+# 或者手动安装主要依赖
+pip install fastapi uvicorn jinja2 pydub openai requests python-multipart
 ```
 
 ## 使用方法
 
+### 启动服务器
+
+```bash
+# 使用启动脚本
+python run.py
+
+# 或者直接使用uvicorn
+uvicorn app:app --reload --host 0.0.0.0 --port 5000
+```
+
+### 访问和API文档
+
+- 网页界面：打开浏览器访问 `http://localhost:5000`
+- API文档：访问 `http://localhost:5000/docs` 或 `http://localhost:5000/redoc`
+
 ### 基础模式
 
 1. 设置 API Key：
-   - 在 `app.py` 中替换 `your_api_key_here` 为您的 Silicon Flow API Key
-   - 或设置环境变量 `SILICON_FLOW_API_KEY`
+   - 在 `config.py` 中配置各种TTS引擎的API密钥
+   - 默认使用Silicon Flow TTS API
 
-2. 运行服务器：
-```bash
-python app.py
-```
-
-3. 访问网页界面：
-   - 打开浏览器访问 `http://localhost:5000`
-   - 在文本框中输入要转换的文本
-   - 点击"转换"按钮
-   - 等待处理完成后自动下载音频文件
+2. 在文本框中输入要转换的文本，选择TTS引擎、音色和语速，点击"转换"按钮
 
 ### 对谈模式
 
@@ -48,18 +58,36 @@ python app.py
 
 2. 使用方法：
    - 在对谈模式输入框中输入带有角色标记的文本
-   - 为每个角色选择不同的音色
+   - 为每个角色选择不同的音色和TTS引擎
    - 点击"生成对谈"按钮
-   - 系统会自动处理并生成对话音频
 
-3. 效果特点：
-   - 每个角色保持声音一致性
-   - 对话之间有自然停顿
-   - 音频流畅自然，类似真实对话
+### 故事转换模式
+
+将文章或故事自动转换为主持人和嘉宾的对话形式。
+
+1. 输入一段故事或文章
+2. 点击"转换故事"按钮
+3. 系统会利用大语言模型将文章转换为对谈脚本
+
+### 翻译功能
+
+将中文对话脚本翻译成英文，保持对话格式。
+
+1. 输入中文对话脚本
+2. 点击"翻译"按钮
+3. 系统会返回翻译后的英文对话脚本
+
+## 技术栈
+
+- FastAPI：高性能异步Web框架
+- Uvicorn：ASGI服务器
+- Jinja2：模板引擎
+- OpenAI API：用于故事转换和翻译
+- 多种TTS API：用于语音合成
 
 ## 注意事项
 
 - 请确保已安装 ffmpeg
 - API Key 请妥善保管，不要泄露
-- 建议使用 Chrome 或 Firefox 浏览器
-- 对谈模式中，建议为不同角色选择差异明显的音色，增强区分度 
+- 对谈模式中，建议为不同角色选择差异明显的音色，增强区分度
+- 流式API处理会保持长连接，请确保网络稳定 
