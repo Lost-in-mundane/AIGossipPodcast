@@ -1,49 +1,58 @@
-import openai
+from openai import Timeout, AsyncOpenAI
 import json # Import json for potential future use if yielding structured data
 import httpx # 导入 httpx
-from config import (
-    TRANSLATION_OPENAI_API_KEY,
-    TRANSLATION_OPENAI_BASE_URL,
-    TRANSLATION_OPENAI_MODEL
-)
+import asyncio # <-- 导入 asyncio
+from config_manager import config_manager  # 使用新的配置管理器
 
 class Translator:
-    def __init__(self, api_key=None, base_url=None, model=None):
-        # 优先使用传入的参数，否则使用配置文件中的默认值
-        self.api_key = api_key or TRANSLATION_OPENAI_API_KEY
-        self.base_url = base_url or TRANSLATION_OPENAI_BASE_URL
-        self.model = model or TRANSLATION_OPENAI_MODEL
+    def __init__(self):
+        """初始化翻译器"""
+        config = config_manager.get_config()
+        api_key = config.API_KEYS.translation_openai_api_key
+        base_url = config.API_KEYS.translation_openai_base_url
+        self.model = config.API_KEYS.translation_openai_model
         
-        if not self.api_key:
-            raise ValueError("未设置 OpenAI API Key")
+        # --- 检查配置 ---
+        if not api_key:
+            raise ValueError("未设置翻译器的 OpenAI API Key")
+        if not base_url:
+             raise ValueError("未设置翻译器的 OpenAI Base URL")
+        if not self.model:
+             raise ValueError("未设置翻译器的 OpenAI Model")
+        # --- 检查结束 ---
         
         # 配置HTTP客户端（确保不使用代理）
-        async_http_client = httpx.AsyncClient(proxy=None, transport=httpx.AsyncHTTPTransport(retries=1))
+        # --- 修改：移除 proxy=None，因为它现在是默认行为 ---
+        async_http_client = httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=1))
         
         # 配置异步 openai 客户端
         try:
-            print("正在创建翻译器的 OpenAI 客户端...")
-            # 显式传递我们创建的、无代理的httpx客户端
-            self.client = openai.AsyncOpenAI(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                timeout=openai.Timeout(
+            print("正在创建翻译器的异步 OpenAI 客户端...")
+            # --- 修改：使用 AsyncOpenAI 并赋值给 self.async_client ---
+            self.async_client = AsyncOpenAI(
+                api_key=api_key,
+                base_url=base_url,
+                # --- 修改：直接使用 Timeout ---
+                timeout=Timeout(
                     connect=30.0,
-                    read=300.0,  # 翻译通常比对话生成快，可以用更短的超时
+                    read=300.0,
                     write=30.0,
                     pool=30.0
                 ),
                 http_client=async_http_client # 传递自定义的AsyncClient
             )
-            print("翻译器的 OpenAI 客户端创建成功")
+            print("翻译器的异步 OpenAI 客户端创建成功")
         except Exception as e:
-            print(f"创建翻译器的 OpenAI 客户端失败: {str(e)}")
+            print(f"创建翻译器的异步 OpenAI 客户端失败: {str(e)}")
             # 如果创建失败，尝试关闭已创建的http客户端
+            # --- 修改：添加 await ---
             try:
-                import asyncio
-                asyncio.run(async_http_client.aclose())
+                async def close_async_client():
+                    await async_http_client.aclose() # <--- 修改这里
+                asyncio.run(close_async_client())
             except Exception:
                 pass
+            # --- 修改结束 ---
             raise
         
         # 翻译系统提示词
@@ -69,7 +78,8 @@ Please follow these rules:
             Exception: 如果 OpenAI API 调用失败或其他错误发生
         """
         try:
-            response = await self.client.chat.completions.create(
+            # --- 修改：使用 self.async_client ---
+            response = await self.async_client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": self.system_prompt},

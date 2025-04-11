@@ -6,6 +6,7 @@ from typing import List, Tuple, Dict, Optional
 from pydub import AudioSegment
 from tts_api import SiliconFlowTTS
 from aliyun_tts import AliyunCosyVoiceTTS
+from elevenlabs_tts import ElevenLabsTTS
 
 class DialogueTTS:
     """对谈模式TTS处理类"""
@@ -31,7 +32,11 @@ class DialogueTTS:
         response_format: str = "wav",
         host_speed: float = 1.0,
         guest_speed: float = 1.0,
-        silence_duration: int = 600  # 静音时长(毫秒)
+        silence_duration: int = 600,  # 静音时长(毫秒)
+        host_stability: Optional[float] = None,  # ElevenLabs 参数
+        host_similarity_boost: Optional[float] = None,  # ElevenLabs 参数
+        guest_stability: Optional[float] = None,  # ElevenLabs 参数
+        guest_similarity_boost: Optional[float] = None  # ElevenLabs 参数
     ) -> bool:
         """
         生成对谈音频（逐行生成方式）
@@ -46,6 +51,10 @@ class DialogueTTS:
             host_speed: 主持人语速
             guest_speed: 嘉宾语速
             silence_duration: 对话之间的静音时长(毫秒)
+            host_stability: ElevenLabs 参数
+            host_similarity_boost: ElevenLabs 参数
+            guest_stability: ElevenLabs 参数
+            guest_similarity_boost: ElevenLabs 参数
             
         Returns:
             bool: 是否成功生成音频
@@ -81,18 +90,40 @@ class DialogueTTS:
                     if need_preprocess:
                         content = current_tts._preprocess_text(content)
                     
+                    # 构建 TTS 参数字典
+                    tts_params = {
+                        "text": content,
+                        "output_path": temp_file,
+                        "voice_name": voice,
+                        "model": model,
+                        "response_format": response_format,
+                        "speed": speed
+                    }
+                    
+                    # 添加 ElevenLabs 特定参数
+                    if role == "主持人":
+                        if host_stability is not None:
+                            tts_params["stability"] = host_stability
+                        if host_similarity_boost is not None:
+                            tts_params["similarity_boost"] = host_similarity_boost
+                    else:  # 嘉宾
+                        if guest_stability is not None:
+                            tts_params["stability"] = guest_stability
+                        if guest_similarity_boost is not None:
+                            tts_params["similarity_boost"] = guest_similarity_boost
+                    
                     try:
-                        # 注意：某些TTS可能不需要model参数，或者参数名不同
-                        # 我们需要确保 text_to_speech 方法能处理这种情况
-                        # 传递所有相关参数，让各个TTS实现自己决定用哪些
-                        success = current_tts.text_to_speech(
-                            text=content,
-                            output_path=temp_file,
-                            voice_name=voice,
-                            model=model, # 传递model，但实现类可能忽略它
-                            response_format=response_format,
-                            speed=speed
-                        )
+                        # --- 修正 ElevenLabs 参数名，并移除不适用的 model 参数 ---
+                        if isinstance(current_tts, ElevenLabsTTS):
+                            if 'voice_name' in tts_params:
+                                tts_params['voice_id'] = tts_params.pop('voice_name')
+                            # 如果是 ElevenLabs，移除 model 参数，让 ElevenLabsTTS 内部处理默认值
+                            if 'model' in tts_params:
+                                tts_params.pop('model') 
+                        # --- 修正结束 ---
+                        
+                        # 使用解包操作符传递参数
+                        success = current_tts.text_to_speech(**tts_params)
                         
                         if success:
                             # 读取生成的音频并添加到列表

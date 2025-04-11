@@ -1,43 +1,85 @@
-import openai
+from openai import OpenAI, Timeout, AsyncOpenAI
 import os
 import time
 import asyncio  # 导入 asyncio
 import httpx  # 导入 httpx
-from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL
+from config_manager import config_manager  # 使用新的配置管理器
 
 class StoryConverter:
-    def __init__(self, api_key=None, base_url=None, model=None):
-        # 优先使用传入的参数，否则使用配置文件中的默认值
-        self.api_key = api_key or OPENAI_API_KEY
-        self.base_url = base_url or OPENAI_BASE_URL
-        self.model = model or OPENAI_MODEL
+    def __init__(self):
+        """初始化故事转换器"""
+        config = config_manager.get_config()
+        
+        # --- 新增：打印配置信息 ---
+        print(f"从配置加载的 OpenAI API Key: {config.API_KEYS.openai}")
+        print(f"从配置加载的 OpenAI Base URL: {config.API_KEYS.openai_base_url}")
+        # --- 新增结束 ---
+
+        # --- 新增：先创建 HTTP 客户端 ---
+        # 配置HTTP客户端（移除 proxy=None）
+        sync_http_client = httpx.Client(transport=httpx.HTTPTransport(retries=1))
+        async_http_client = httpx.AsyncClient(transport=httpx.AsyncHTTPTransport(retries=1))
+        # --- 新增结束 ---
+
+        # --- 修改：首次初始化 self.client 时就传入 http_client ---
+        self.client = OpenAI(
+            api_key=config.API_KEYS.openai,
+            base_url=config.API_KEYS.openai_base_url,
+            http_client=sync_http_client, # 显式传递
+            timeout=Timeout( # 确保 Timeout 正确使用
+                connect=30.0,
+                read=600.0,
+                write=30.0,
+                pool=30.0
+            )
+        )
+        # --- 修改结束 ---
+        
+        self.model = config.API_KEYS.openai_model
         
         print(f"初始化 StoryConverter:")
         print(f"使用模型: {self.model}")
-        print(f"使用基础URL: {self.base_url}")
-        print(f"API Key 是否存在: {'是' if self.api_key else '否'}")
+        print(f"使用基础URL: {self.client.base_url}") # 这里打印的是实际传入Client的URL
+        print(f"API Key 是否存在: {'是' if self.client.api_key else '否'}")
         
-        if not self.api_key:
+        if not self.client.api_key:
+            # --- 新增：如果失败，关闭已创建的客户端 ---
+            try:
+                sync_http_client.close()
+                asyncio.run(async_http_client.aclose())
+            except Exception:
+                pass # 忽略关闭错误
+            # --- 新增结束 ---
             raise ValueError("未设置 OpenAI API Key")
         
-        if not self.base_url:
+        if not self.client.base_url:
+            # --- 新增：如果失败，关闭已创建的客户端 ---
+            try:
+                sync_http_client.close()
+                asyncio.run(async_http_client.aclose())
+            except Exception:
+                pass # 忽略关闭错误
+            # --- 新增结束 ---
             raise ValueError("未设置 OpenAI Base URL")
         
         if not self.model:
+            # --- 新增：如果失败，关闭已创建的客户端 ---
+            try:
+                sync_http_client.close()
+                asyncio.run(async_http_client.aclose())
+            except Exception:
+                pass # 忽略关闭错误
+            # --- 新增结束 ---
             raise ValueError("未设置 OpenAI Model")
-        
-        # 配置HTTP客户端（确保不使用代理）
-        sync_http_client = httpx.Client(proxy=None, transport=httpx.HTTPTransport(retries=1))
-        async_http_client = httpx.AsyncClient(proxy=None, transport=httpx.AsyncHTTPTransport(retries=1))
         
         # 配置 openai 客户端
         try:
             print("正在创建异步 OpenAI 客户端...")
-            # 显式传递我们创建的、无代理的httpx客户端
-            self.async_client = openai.AsyncOpenAI(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                timeout=openai.Timeout(
+            # --- 修改：使用 AsyncOpenAI 而不是 OpenAI ---
+            self.async_client = AsyncOpenAI(
+                api_key=self.client.api_key,
+                base_url=self.client.base_url,
+                timeout=Timeout( # 确保 Timeout 正确使用
                     connect=30.0,
                     read=600.0,
                     write=30.0,
@@ -47,20 +89,18 @@ class StoryConverter:
             )
             print("异步 OpenAI 客户端创建成功")
             
-            print("正在创建同步 OpenAI 客户端...")
-            # 显式传递我们创建的、无代理的httpx客户端
-            self.client = openai.OpenAI(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                timeout=openai.Timeout(
-                    connect=30.0,
-                    read=600.0,
-                    write=30.0,
-                    pool=30.0
-                ),
-                http_client=sync_http_client # 传递自定义的Client
-            )
-            print("同步 OpenAI 客户端创建成功")
+            # --- 修改：添加 await ---
+            try:
+                # 需要在异步上下文中运行 await
+                # 注意：直接在这里运行 asyncio.run 可能不是最佳实践，
+                # 但为了修复警告，暂时这样做。
+                # 更好的方式是在应用的整体异步循环中处理关闭。
+                async def close_async_client():
+                    await async_http_client.aclose() # <--- 修改这里
+                asyncio.run(close_async_client())
+            except Exception:
+                pass
+            
         except Exception as e:
             print(f"创建 OpenAI 客户端失败: {str(e)}")
             # 如果创建失败，尝试关闭已创建的http客户端
@@ -69,7 +109,7 @@ class StoryConverter:
             except Exception:
                 pass
             try:
-                sync_http_client.close()
+                sync_http_client.close() # 现在 sync_http_client 总是已定义的
             except Exception:
                 pass
             raise
@@ -171,6 +211,9 @@ class StoryConverter:
             Exception: 如果 OpenAI API 调用失败或其他错误发生
         """
         try:
+            # --- 新增：打印连接的 Base URL --- 
+            print(f"StoryConverter: 尝试连接 Base URL: {self.async_client.base_url}")
+            # --- 新增结束 ---
             print(f"调用异步流式转换，模型: {self.model}, 文本长度: {len(story_text)}")
             response = await self.async_client.chat.completions.create(
                 model=self.model,

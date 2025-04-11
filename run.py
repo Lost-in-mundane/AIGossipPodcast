@@ -10,11 +10,13 @@ print(f"运行路径: {os.getcwd()}")
 
 if __name__ == "__main__":
     print("准备启动FastAPI服务器...")
+    
+    # 配置服务器
     uvicorn.run(
         "app:app", 
         host="0.0.0.0", 
-        port=5001,
-        reload=True,  # 保持重载以便开发
-        reload_dirs=["templates", "."],
-        log_level="info"
+        port=5001,  # 使用统一的端口
+        #reload=True,  # 开发模式下启用热重载
+        #reload_dirs=["templates", "."],  # 监视这些目录的变化
+        log_level="info"  # 设置日志级别
     ) 

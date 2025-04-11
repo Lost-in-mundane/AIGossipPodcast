@@ -6,20 +6,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 from typing import Optional, List, Dict, Any, Union, AsyncGenerator
 from starlette.background import BackgroundTask
+from pathlib import Path
+import json
+import time
+import asyncio
 
 from pydub import AudioSegment
 import tempfile
 import os
-import json
-import time
-import asyncio
-from pathlib import Path
 
+from config_manager import config_manager, AppConfig, SettingsResponse  # 添加新的导入
 from tts_factory import TTSFactory
 from multiTTS import DialogueTTS
 from story_converter import StoryConverter
 from translator import Translator
-from config import OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL, DEFAULT_TTS_ENGINE
+from elevenlabs_tts import ElevenLabsTTS # <-- 新增导入用于类型检查
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -38,27 +39,31 @@ app.add_middleware(
 )
 
 # 设置静态文件和模板
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 # 初始化默认 TTS 实例和故事转换器
-story_converter = StoryConverter(
-    api_key=OPENAI_API_KEY,
-    base_url=OPENAI_BASE_URL,
-    model=OPENAI_MODEL
-)
+story_converter = StoryConverter()
 
 # Pydantic 模型定义
 class TextToSpeechRequest(BaseModel):
     text: str
     voice: str = "anna"
     speed: float = 1.0
-    tts_engine: str = DEFAULT_TTS_ENGINE
+    tts_engine: str = config_manager.get_config().DEFAULT_TTS_ENGINE
+    stability: Optional[float] = None  # ElevenLabs 参数
+    similarity_boost: Optional[float] = None  # ElevenLabs 参数
 
     @validator('speed')
     def validate_speed(cls, v):
         if not (0.25 <= v <= 4.0):
             raise ValueError("语速必须在 0.25 到 4.0 之间")
+        return v
+
+    @validator('stability', 'similarity_boost')
+    def validate_elevenlabs_params(cls, v):
+        if v is not None and not (0.0 <= v <= 1.0):
+            raise ValueError("ElevenLabs 参数必须在 0.0 到 1.0 之间")
         return v
 
 class DialogueRequest(BaseModel):
@@ -68,13 +73,23 @@ class DialogueRequest(BaseModel):
     host_speed: float = 1.0
     guest_speed: float = 1.0
     silence_duration: int = 600
-    host_tts_engine: str = DEFAULT_TTS_ENGINE
-    guest_tts_engine: str = DEFAULT_TTS_ENGINE
+    host_tts_engine: str = config_manager.get_config().DEFAULT_TTS_ENGINE
+    guest_tts_engine: str = config_manager.get_config().DEFAULT_TTS_ENGINE
+    host_stability: Optional[float] = None  # ElevenLabs 主持人参数
+    host_similarity_boost: Optional[float] = None  # ElevenLabs 主持人参数
+    guest_stability: Optional[float] = None  # ElevenLabs 嘉宾参数
+    guest_similarity_boost: Optional[float] = None  # ElevenLabs 嘉宾参数
 
     @validator('host_speed', 'guest_speed')
     def validate_speed(cls, v):
         if not (0.25 <= v <= 4.0):
             raise ValueError("语速必须在 0.25 到 4.0 之间")
+        return v
+
+    @validator('host_stability', 'host_similarity_boost', 'guest_stability', 'guest_similarity_boost')
+    def validate_elevenlabs_params(cls, v):
+        if v is not None and not (0.0 <= v <= 1.0):
+            raise ValueError("ElevenLabs 参数必须在 0.0 到 1.0 之间")
         return v
 
 class StoryRequest(BaseModel):
@@ -92,7 +107,7 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/api/voices")
-async def get_voices(engine: str = DEFAULT_TTS_ENGINE):
+async def get_voices(engine: str = config_manager.get_config().DEFAULT_TTS_ENGINE):
     """获取指定TTS引擎的音色列表"""
     voices = TTSFactory.get_voices_for_ui(engine)
     return voices
@@ -115,13 +130,29 @@ async def convert(request: TextToSpeechRequest):
             
             for i, line in enumerate(lines):
                 temp_file = os.path.join(temp_dir, f'temp_{i}.wav')
-                success = current_tts.text_to_speech(
-                    text=line,
-                    output_path=temp_file,
-                    voice_name=request.voice,
-                    speed=request.speed,
-                    response_format="wav"
-                )
+                
+                # 构建 TTS 参数
+                tts_params = {
+                    "text": line,
+                    "output_path": temp_file,
+                    "voice_name": request.voice,
+                    "speed": request.speed,
+                    "response_format": "wav"
+                }
+                
+                # 如果是 ElevenLabs，添加特有参数
+                if request.tts_engine == "elevenlabs":
+                    if request.stability is not None:
+                        tts_params["stability"] = request.stability
+                    if request.similarity_boost is not None:
+                        tts_params["similarity_boost"] = request.similarity_boost
+                
+                # --- 新增：修正 ElevenLabs 的音色参数名 ---
+                if isinstance(current_tts, ElevenLabsTTS) and 'voice_name' in tts_params:
+                    tts_params['voice_id'] = tts_params.pop('voice_name')
+                # --- 新增结束 ---
+                
+                success = current_tts.text_to_speech(**tts_params)
                 
                 if not success:
                     os.unlink(temp_final.name)  # 清理临时文件
@@ -146,7 +177,8 @@ async def convert(request: TextToSpeechRequest):
             
     except Exception as e:
         if 'temp_final' in locals():
-            os.unlink(temp_final.name)  # 确保出错时也清理临时文件
+            os.unlink(temp_final.name)
+        print(f"Error in convert: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/convert_dialogue")
@@ -307,7 +339,38 @@ async def translate_script_stream(request: TranslationRequest):
         }
     )
 
+# 添加配置管理路由
+@app.get("/get_settings", response_model=SettingsResponse)
+async def get_settings():
+    """获取当前设置（不包含敏感信息）"""
+    try:
+        return config_manager.get_settings_response()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取设置失败: {str(e)}")
+
+@app.post("/save_settings")
+async def save_settings(updated_settings: AppConfig):
+    """保存新的设置"""
+    try:
+        current_config = config_manager.get_config()
+        
+        # 处理 API Keys：只更新非空的值
+        for key, value in updated_settings.API_KEYS.dict().items():
+            if value is not None:
+                current_config.API_KEYS.__setattr__(key, value)
+        
+        # 更新其他设置
+        current_config.DEFAULT_TTS_ENGINE = updated_settings.DEFAULT_TTS_ENGINE
+        current_config.DEFAULT_VOICES = updated_settings.DEFAULT_VOICES
+        current_config.ELEVENLABS_SETTINGS = updated_settings.ELEVENLABS_SETTINGS
+        current_config.MODELS = updated_settings.MODELS
+        
+        config_manager.update_config(current_config)
+        return JSONResponse({"message": "设置已成功保存！"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"保存设置失败: {str(e)}")
+
 # 启动服务器
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=5000, reload=True) 
+    uvicorn.run("app:app", host="0.0.0.0", port=5001, reload=True, reload_dirs=["templates", "."], log_level="info") 

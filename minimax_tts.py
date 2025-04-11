@@ -3,25 +3,22 @@ from pathlib import Path
 import json
 from typing import Literal, Union, Dict, List, Tuple
 import os
-from config import MINIMAX_GROUP_ID, MINIMAX_DEFAULT_MODEL
+import base64
+from config_manager import config_manager  # 使用新的配置管理器
 import re
 
 class MiniMaxTTS:
     """MiniMax T2A V2 API 封装类"""
     
-    def __init__(self, api_key: str):
-        """
-        初始化 MiniMax TTS 客户端
-        
-        Args:
-            api_key: MiniMax API 密钥
-        """
+    def __init__(self):
+        """初始化 MiniMax TTS 客户端"""
+        config = config_manager.get_config()
+        self.group_id = config.API_KEYS.minimax_group_id
+        self.api_key = config.API_KEYS.minimax_api_key
+        self.default_model = config.MODELS.minimax_default_model
         self.base_url = "https://api.minimax.chat/v1/t2a_v2"
-        self.api_key = api_key
-        self.group_id = MINIMAX_GROUP_ID  # 使用config中的配置
-        self.default_model = MINIMAX_DEFAULT_MODEL  # 使用config中的默认模型
         self.headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
         }
         
