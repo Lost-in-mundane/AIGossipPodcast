@@ -32,7 +32,7 @@
 
 1. **克隆项目**
 ```bash
-git clone https://github.com/你的用户名/AIGossipPodcast.git
+git clone https://github.com/Lost-in-mundane/AIGossipPodcast.git
 cd AIGossipPodcast
 ```
 
