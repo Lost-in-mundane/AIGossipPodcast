@@ -10,6 +10,7 @@ from pathlib import Path
 import json
 import time
 import asyncio
+import sys
 
 from pydub import AudioSegment
 import tempfile
@@ -22,10 +23,21 @@ from story_converter import StoryConverter
 from translator import Translator
 from elevenlabs_tts import ElevenLabsTTS # <-- 新增导入用于类型检查
 
+# Helper function to determine the base path for resources
+def get_base_path():
+    if hasattr(sys, '_MEIPASS'):
+        # Running in PyInstaller bundle
+        return Path(sys._MEIPASS)
+    else:
+        # Running in normal environment
+        return Path(__file__).parent
+
+BASE_DIR = get_base_path()
+
 # 创建 FastAPI 应用
 app = FastAPI(
-    title="LDtts - 语音生成平台",
-    description="一个基于多种语音引擎的文本到语音转换服务",
+    title="AIGossipPodcast - AI狗血故事播客生成器",
+    description="专门用于将八卦、狗血故事转换成生动播客对话的AI工具",
     version="1.0.0"
 )
 
@@ -38,9 +50,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 设置静态文件和模板
-templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
-app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
+# 设置静态文件和模板 (使用新的 BASE_DIR)
+templates_dir = BASE_DIR / "templates" # <--- Use BASE_DIR
+static_dir = BASE_DIR / "static" # <--- Use BASE_DIR
+print(f"模板目录: {templates_dir}, 是否存在: {templates_dir.exists()}")
+print(f"静态文件目录: {static_dir}, 是否存在: {static_dir.exists()}")
+
+templates = Jinja2Templates(directory=str(templates_dir))
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # 初始化默认 TTS 实例和故事转换器
 story_converter = StoryConverter()

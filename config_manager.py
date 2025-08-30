@@ -3,9 +3,21 @@ from typing import Optional, Dict
 import json
 import os
 from pathlib import Path
+import sys
+
+# Helper function to determine the base path for resources
+def get_base_path():
+    if hasattr(sys, '_MEIPASS'):
+        # Running in PyInstaller bundle
+        return Path(sys._MEIPASS)
+    else:
+        # Running in normal environment
+        return Path(__file__).parent
+
+BASE_DIR = get_base_path()
 
 # 获取配置文件的绝对路径
-CONFIG_FILE = Path(__file__).parent / 'config.json'
+CONFIG_FILE = BASE_DIR / 'config.json'
 print(f"配置文件路径: {CONFIG_FILE}")
 print(f"配置文件是否存在: {CONFIG_FILE.exists()}")
 
@@ -13,21 +25,21 @@ print(f"配置文件是否存在: {CONFIG_FILE.exists()}")
 class ApiKeysModel(BaseModel):
     # TTS相关API密钥
     elevenlabs: str = ""
-    minimax_group_id: str = "1890083205713760296"
-    minimax_api_key: str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiLmtbfonrrnlKjmiLdfMjczMTc1NTczMjQwNzAwOTI5IiwiVXNlck5hbWUiOiLmtbfonrrnlKjmiLdfMjczMTc1NTczMjQwNzAwOTI5IiwiQWNjb3VudCI6IiIsIlN1YmplY3RJRCI6IjE4OTAwODMyMDU3MjIxNDg5MDQiLCJQaG9uZSI6IjE5ODAwMzIzNTUwIiwiR3JvdXBJRCI6IjE4OTAwODMyMDU3MTM3NjAyOTYiLCJQYWdlTmFtZSI6IiIsIk1haWwiOiIiLCJDcmVhdGVUaW1lIjoiMjAyNS0wNC0wOCAxNDo0NToyOSIsIlRva2VuVHlwZSI6MSwiaXNzIjoibWluaW1heCJ9.Yt6j5JNvqHXzr80keXVjvU0wgQwqqWyrNnb9CTWeQlUKaeb96xqmy2w-OZEm7n4fNBsvUGX5amNCD75bGl9qJfI01khWEjAzkarSwJ6M_1gUIZOnQRp2nas_pIbmqxmScH8Kp47VVHf4Yadc7O53SUyeYYWZncXX3eJuv8GNcb9DsonZEYttvZPHj6oCibinr3W63hD__tWF9-9bK3uk5TRjoytnHwRWj0uFeHwqEoMfF1FOPlmFrA_tUi7_vBiZ1upbhoTOJ_VL4DF-B2Hv_YMF8It2hPkbB58xn4oGNuNof1tbUXrkCU_Q90PbMtksuDcv4cYoG7vdTqqqtTZ01A"
-    aliyun_access_key_id: str = "sk-875aca9095064850a0e2c84d3cc6f5b1"
+    minimax_group_id: str = ""
+    minimax_api_key: str = ""
+    aliyun_access_key_id: str = ""
     aliyun_access_key_secret: Optional[str] = None
-    siliconflow_api_key: str = "sk-wfmtuoioaovnoiyvegmvxqacjfxtrbdhnxdejkxoiipfhvef"
+    siliconflow_api_key: str = ""
     
     # OpenAI相关配置
-    openai: str = "sk-JaXkIreIGs3Ci3F3JZkgojqGcKT14JwbwhFA9OsLHE0iEAEd"
-    openai_base_url: str = "https://chat.cloudapi.vip/v1"
-    openai_model: str = "claude-3-7-sonnet-20250219"
+    openai: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_model: str = "gpt-3.5-turbo"
     
     # 翻译专用配置
-    translation_openai_api_key: str = "sk-JaXkIreIGs3Ci3F3JZkgojqGcKT14JwbwhFA9OsLHE0iEAEd"
-    translation_openai_base_url: str = "https://chat.cloudapi.vip/v1"
-    translation_openai_model: str = "claude-3-7-sonnet-20250219"
+    translation_openai_api_key: str = ""
+    translation_openai_base_url: str = "https://api.openai.com/v1"
+    translation_openai_model: str = "gpt-3.5-turbo"
 
 class ElevenLabsSettingsModel(BaseModel):
     stability: float = Field(0.75, ge=0, le=1)

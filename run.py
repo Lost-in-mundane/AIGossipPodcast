@@ -1,6 +1,7 @@
 import uvicorn
 import os
 import sys
+from app import app # 直接导入 app 对象
 
 # 打印Python版本和环境信息
 print(f"Python 版本: {sys.version}")
@@ -13,7 +14,7 @@ if __name__ == "__main__":
     
     # 配置服务器
     uvicorn.run(
-        "app:app", 
+        app,            # <--- 修改这里，直接传入 app 对象
         host="0.0.0.0", 
         port=5001,  # 使用统一的端口
         #reload=True,  # 开发模式下启用热重载

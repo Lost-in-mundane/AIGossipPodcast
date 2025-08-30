@@ -37,6 +37,17 @@ ENV/
 *.pcm
 *.opus
 
+# 配置文件（包含敏感信息）
+config.json
+config.json.backup
+.env
+
 # 系统文件
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 开发工具
+.claude/ 
